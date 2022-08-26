@@ -8,11 +8,15 @@ from pathlib import Path
 def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '-v', '--version',
+        help="Sof version to install"
+    )
+    parser.add_argument(
         "--no-pulseaudio", "--no-pa",
         action="store_true",
         dest="no_pa",
         default=False,
-        help="Do not install pulseaudio"
+        help="Only install alsa"
     )
     parser.add_argument(
         "--offline", "--local-files",
@@ -36,7 +40,8 @@ def download_files() -> None:
     sp.run("cp /tmp/eupnea-audio/configs/* " + home_path, shell=True)
 
 
-def install_pa(local_files: bool, sof_version="v2.2.x", sof_subversion="v2.2") -> None:
+def install_pa(local_files: bool, sof_version="v2.2.x") -> None:
+    sof_patch = sof_version.split(".")[2]
     print("Installing pulseaudio")
     print("Removing old files")
     sp.run("sudo rm -f /etc/systemd/system/alsa-reload.service", shell=True)
@@ -46,12 +51,13 @@ def install_pa(local_files: bool, sof_version="v2.2.x", sof_subversion="v2.2") -
     if not local_files:
         sp.run(["sudo", "rm", "-f", "/lib/firmware/intel/sof*"])
         print("Installing sof-audio")
-        sp.run("sudo cp -r /tmp/sof-audio/" + sof_version + "/sof-" + sof_subversion + " /lib/firmware/intel/sof",
+        sp.run("sudo cp -r /tmp/sof-audio/" + sof_version + "/sof-" + sof_patch + " /lib/firmware/intel/sof",
                shell=True)
         sp.run("sudo cp -r /tmp/sof-audio/"
-               + sof_version + "/sof-tplg-" + sof_subversion + " /lib/firmware/intel/sof-tplg",
+               + sof_version + "/sof-tplg-" + sof_patch + " /lib/firmware/intel/sof-tplg",
                shell=True)
-        sp.run("sudo cp /tmp/sof-audio/" + sof_version + "/tools-" + sof_subversion + "* /usr/local/bin/", shell=True)
+        sp.run("sudo cp -r /tmp/sof-audio/" + sof_version + "/tools-" + sof_patch + "* /usr/local/bin/",
+               shell=True)
     print("Installing audio services")
     sp.run("sudo cp " + home_path + "alsa-reload.service /etc/systemd/system/", shell=True)
     sp.run("sudo systemctl enable alsa-reload", shell=True)
@@ -70,4 +76,4 @@ if __name__ == "__main__":
     if not args.local_files:
         download_files()
     if not args.no_pa:
-        install_pa(args.local_files)
+        install_pa(args.local_files, args.version)
