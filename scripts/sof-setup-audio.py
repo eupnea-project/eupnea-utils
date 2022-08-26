@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def process_args():
-    print("\033[95m" + "Processing args")
+    print("\033[95m" + "Processing args" + "\033[0m")
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--version', default="v2.2.x", help="Sof version to install, default: v2.2.x")
     parser.add_argument("--no-pulseaudio", "--no-pa", action="store_true", dest="no_pa", default=False,
@@ -17,29 +17,29 @@ def process_args():
 
 
 def download_files() -> None:
-    print("\033[94m" + "Removing old files")
+    print("\033[94m" + "Removing old files" + "\033[0m")
     sp.run(["sudo", "rm", "-rf", str(Path.home()) + "/.config/eupnea/audio"])
     sp.run(["mkdir", "-p", str(Path.home()) + "/.config/eupnea/audio"])
     sp.run("rm -rf /tmp/eupnea* /tmp/sof*", shell=True)
-    print("\033[94m" + "Downloading files from github")
+    print("\033[94m" + "Downloading files from github" + "\033[0m")
     sp.run("git clone --depth 1 https://github.com/eupnea-linux/python-scripts /tmp/eupnea-audio", shell=True)
     sp.run("git clone --depth 1 https://github.com/thesofproject/sof-bin /tmp/sof-audio", shell=True)
-    print("\033[94m" + "Copying files from tmp")
+    print("\033[94m" + "Copying files from tmp" + "\033[0m")
     sp.run("cp /tmp/eupnea-audio/configs/* " + home_path, shell=True)
 
 
 def install_pa(local_files: bool, sof_version) -> None:
     if sof_version is None:
         sof_version = "v2.2.x"
-    print("\033[95m" + "Installing pulseaudio")
-    print("\033[94m" + "Removing old files")
+    print("\033[95m" + "Installing pulseaudio" + "\033[0m")
+    print("\033[94m" + "Removing old files" + "\033[0m")
     sp.run("sudo rm -f /etc/systemd/system/alsa-reload.service", shell=True)
     sp.run("sudo rm -f /etc/pulse/default.pa", shell=True)
     sp.run("sudo rm -f /etc/modprobe.d/alsa-breath.conf", shell=True)
     sp.run("sudo rm -f /etc/asound.conf", shell=True)
     if not local_files:
         sp.run(["sudo", "rm", "-f", "/lib/firmware/intel/sof*"])
-        print("\033[95m" + "Installing sof-audio")
+        print("\033[95m" + "Installing sof-audio" + "\033[0m")
         sp.run("sudo cp -r /tmp/sof-audio/" + sof_version + "/sof" + " /lib/firmware/intel/sof",
                shell=True)
         sp.run("sudo cp -r /tmp/sof-audio/"
@@ -47,14 +47,14 @@ def install_pa(local_files: bool, sof_version) -> None:
                shell=True)
         sp.run("sudo cp -r /tmp/sof-audio/" + sof_version + "/tools" + "* /usr/local/bin/",
                shell=True)
-    print("\033[94m" + "Installing audio services")
+    print("\033[94m" + "Installing audio services" + "\033[0m")
     sp.run("sudo cp " + home_path + "alsa-reload.service /etc/systemd/system/", shell=True)
     sp.run("sudo systemctl enable alsa-reload", shell=True)
-    print("\033[94m" + "Copying pa config")
+    print("\033[94m" + "Copying pa config" + "\033[0m")
     sp.run("sudo cp " + home_path + "default.pa /etc/pulse/", shell=True)
-    print("\033[94m" + "Config old drivers")
+    print("\033[94m" + "Config old drivers" + "\033[0m")
     sp.run("sudo cp " + home_path + "alsa-breath.conf /etc/modprobe.d/", shell=True)
-    print("\033[94m" + "Copying asound.conf")
+    print("\033[94m" + "Copying asound.conf" + "\033[0m")
     sp.run("sudo cp " + home_path + "asound.conf /etc/", shell=True)
 
 
