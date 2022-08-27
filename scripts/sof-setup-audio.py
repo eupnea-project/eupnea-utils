@@ -28,7 +28,7 @@ def download_files() -> None:
     os.system("git clone --depth 1 https://github.com/eupnea-linux/python-scripts /tmp/eupnea-audio")
     os.system("git clone --depth 1 https://github.com/thesofproject/sof-bin /tmp/sof-audio")
     print("\033[94m" + "Copying files from tmp" + "\033[0m")
-    shutil.copytree("cp /tmp/eupnea-audio/configs/", home_path, dirs_exist_ok=True)
+    shutil.copytree("/tmp/eupnea-audio/configs/", home_path, dirs_exist_ok=True)
 
 
 def install_pa(local_files: bool, sof_version) -> None:
@@ -36,38 +36,49 @@ def install_pa(local_files: bool, sof_version) -> None:
         sof_version = "v2.2.x"
     print("\033[95m" + "Installing pulseaudio" + "\033[0m")
     print("\033[94m" + "Removing old files" + "\033[0m")
-    os.remove("/etc/systemd/system/alsa-reload.service")
-    os.remove("/etc/pulse/default.pa")
-    os.remove("/etc/modprobe.d/alsa-breath.conf")
-    os.remove("/etc/asound.conf")
+    try:
+        os.remove("/etc/systemd/system/alsa-reload.service")
+        os.remove("/etc/pulse/default.pa")
+        os.remove("/etc/modprobe.d/alsa-breath.conf")
+        os.remove("/etc/asound.conf")
+    except FileNotFoundError:
+        pass
     if not local_files:
         # remove all old sof folders + files
         for directory in Path("/lib/firmware/intel/").glob("sof*"):
+            print(directory)
             try:
                 shutil.rmtree(directory, ignore_errors=True)
             except NotADirectoryError:
-                directory.unlink()
+                os.remove(directory)
+        for file in Path("/usr/local/bin/").glob("sof*"):
+            if not str(file).find("sof-setup-audio") == -1:
+                continue
+            else:
+                os.remove(file)
         print("\033[95m" + "Installing sof-audio" + "\033[0m")
         shutil.copytree("/tmp/sof-audio/" + sof_version + "/sof", "/lib/firmware/intel/sof")
         shutil.copytree("/tmp/sof-audio/" + sof_version + "/sof-tplg", "/lib/firmware/intel/sof-tplg")
-        shutil.copytree("/tmp/sof-audio/" + sof_version + "/tools" + sof_version[:sof_version.rfind(".")],
-                        "/usr/local/bin/")
+        for file in os.listdir("/tmp/sof-audio/" + sof_version + "/tools-" + sof_version[:sof_version.rfind(".")]):
+            shutil.move(
+                os.path.join("/tmp/sof-audio/" + sof_version + "/tools-" + sof_version[:sof_version.rfind(".")], file),
+                "/usr/local/bin/")
     print("\033[94m" + "Installing audio services" + "\033[0m")
-    shutil.copyfile(home_path + "alsa-reload.service", "/etc/systemd/system/")
+    shutil.copy(home_path + "alsa-reload.service", "/etc/systemd/system/")
     os.system("sudo systemctl enable alsa-reload")
     print("\033[94m" + "Copying pa config" + "\033[0m")
-    shutil.copyfile(home_path + "default.pa", "/etc/pulse/")
+    shutil.copy(home_path + "default.pa", "/etc/pulse/")
     print("\033[94m" + "Blacklising old drivers" + "\033[0m")
-    shutil.copyfile(home_path + "alsa-breath.conf", "/etc/modprobe.d/")
+    shutil.copy(home_path + "alsa-breath.conf", "/etc/modprobe.d/")
     print("\033[94m" + "Copying asound.conf" + "\033[0m")
-    shutil.copyfile(home_path + "asound.conf", "/etc/")
+    shutil.copy(home_path + "asound.conf", "/etc/")
 
 
 if __name__ == "__main__":
     # Elevate script to root
     if os.geteuid() != 0:
         with open("/tmp/eupnea-path", "w") as file:
-            file.write(str(Path.home()) + "/.config/eupnea/audio")
+            file.write(str(Path.home()) + "/.config/eupnea/audio/")
         args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *args)
     try:
@@ -81,3 +92,4 @@ if __name__ == "__main__":
         download_files()
     if not args.no_pa:
         install_pa(args.local_files, args.version)
+    print("\033[92m" + "Audio installed successfully. Please reboot." + "\033[0m")
