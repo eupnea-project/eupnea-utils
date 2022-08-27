@@ -20,9 +20,9 @@ def process_args():
 
 def download_files() -> None:
     print("\033[94m" + "Removing old files" + "\033[0m")
-    os.rmdir(home_path)
-    os.rmdir("/tmp/eupnea-audio")
-    os.rmdir("/tmp/sof-audio")
+    shutil.rmtree(home_path, ignore_errors=True)
+    shutil.rmtree("/tmp/eupnea-audio", ignore_errors=True)
+    shutil.rmtree("/tmp/sof-audio", ignore_errors=True)
     Path(home_path).mkdir(parents=True, exist_ok=True)
     print("\033[94m" + "Downloading files from github" + "\033[0m")
     os.system("git clone --depth 1 https://github.com/eupnea-linux/python-scripts /tmp/eupnea-audio")
@@ -44,7 +44,7 @@ def install_pa(local_files: bool, sof_version) -> None:
         # remove all old sof folders + files
         for directory in Path("/lib/firmware/intel/").glob("sof*"):
             try:
-                directory.rmdir()
+                shutil.rmtree(directory, ignore_errors=True)
             except NotADirectoryError:
                 directory.unlink()
         print("\033[95m" + "Installing sof-audio" + "\033[0m")
