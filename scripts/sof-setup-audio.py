@@ -65,12 +65,18 @@ def install_pa(local_files: bool, sof_version) -> None:
 
 if __name__ == "__main__":
     # Elevate script to root
-    euid = os.geteuid()
-    if euid != 0:
+    if os.geteuid() != 0:
+        with open("/tmp/eupnea-path", "w") as file:
+            file.write(str(Path.home()) + "/.config/eupnea/audio")
         args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *args)
+    try:
+        with open("/tmp/eupnea-path", "r") as file:
+            home_path = file.read()
+    except FileNotFoundError:
+        print('\033[91m' + "Please start script without sudo!")
+        exit()
     args = process_args()
-    home_path = str(Path.home()) + "/.config/eupnea/audio"
     if not args.local_files:
         download_files()
     if not args.no_pa:
