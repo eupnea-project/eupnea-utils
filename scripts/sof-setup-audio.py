@@ -58,9 +58,9 @@ def install_pa(local_files: bool, sof_version) -> None:
     print("\033[94m" + "Copying pa config" + "\033[0m")
     shutil.copyfile(home_path + "default.pa", "/etc/pulse/")
     print("\033[94m" + "Blacklising old drivers" + "\033[0m")
-    shutil.copyfile(home_path + "alsa-breath.conf" "/etc/modprobe.d/")
+    shutil.copyfile(home_path + "alsa-breath.conf", "/etc/modprobe.d/")
     print("\033[94m" + "Copying asound.conf" + "\033[0m")
-    shutil.copyfile(home_path + "asound.conf" "/etc/")
+    shutil.copyfile(home_path + "asound.conf", "/etc/")
 
 
 if __name__ == "__main__":
