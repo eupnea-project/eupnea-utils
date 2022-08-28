@@ -65,7 +65,7 @@ def install_pa(local_files: bool, sof_version) -> None:
                 "/usr/local/bin/")
     print("\033[94m" + "Installing audio services" + "\033[0m")
     shutil.copy(home_path + "alsa-reload.service", "/etc/systemd/system/")
-    os.system("sudo systemctl enable alsa-reload")
+    os.system("systemctl enable alsa-reload")
     print("\033[94m" + "Copying pa config" + "\033[0m")
     shutil.copy(home_path + "default.pa", "/etc/pulse/")
     print("\033[94m" + "Blacklising old drivers" + "\033[0m")
