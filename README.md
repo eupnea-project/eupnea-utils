@@ -1,2 +1,2 @@
-# python-scripts
-A rewrite of the original sh scripts in python
+# Eupnea-scipts
+Various post install scripts for eupnea, written in python
