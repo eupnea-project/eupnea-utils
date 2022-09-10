@@ -4,6 +4,8 @@ import argparse
 import os.path
 from os import system as bash
 import subprocess as sp
+from urllib.request import urlopen
+from urllib.error import URLError
 
 
 # parse arguments from the cli.
@@ -11,9 +13,11 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--append', action="store_true", dest="append", default=False,
                         help="Append a flag rather than replacing the whole command line")
+    parser.add_argument('-r', '--reset', action="store_true", dest="reset", default=False,
+                        help="Reset to default command line")
     parser.add_argument(dest='cmdline', type=str, nargs=1,
                         help="New, full kernel command line, example: \n"
-                             + r'change-kernel-parameters "console=tty1 root=PARTUUID=7d83c214-289e-4e8b-93cc-685aea502'
+                             + r'modify-cmdline "console=tty1 root=PARTUUID=7d83c214-289e-4e8b-93cc-685aea502'
                                r'f59 i915.modeset=1 rootwait rw fbcon=logo-pos:center,logo-count:1 loglevel=0 splash"')
     return parser.parse_args()
 
@@ -34,12 +38,29 @@ def install_packages() -> None:
 
 if __name__ == '__main__':
     args = process_args()
-    new_cmdline = args.cmdline.strip()
+    print("Reading partition table")
+    partitions = sp.run("mount | grep ' / ' | cut -d' ' -f 1", shell=True, capture_output=True).stdout.decode(
+        "utf-8").strip()
+    partitions = partitions[:len(partitions) - 1]  # get device "name"
+    if args.reset:
+        print("Resetting to default command line")
+        print("Downloading default command line from github")
+        try:
+            temp_cmdline = urlopen(
+                "https://raw.githubusercontent.com/eupnea-linux/eupnea/main/configs/kernel.flags").read().decode(
+                "utf-8")
+        except URLError:
+            print("\033[91m" + "Failed to reach github. Fallback to hardcoded default cmdline" + "\033[0m")
+            temp_cmdline = "console=tty1 root=PARTUUID=${USB_ROOTFS} i915.modeset=1 rootwait rw fbcon=logo-pos:center" \
+                           ",logo-count:1 loglevel=0 splash"
+        # get partuuid of rootfs
+        rootfs_partuuid = sp.run(["blkid", "-o", "value", "-s", "PARTUUID", f"{partitions}2"],
+                                 capture_output=True).stdout.decode("utf-8").strip()
+        new_cmdline = temp_cmdline.replace("${USB_ROOTFS}", rootfs_partuuid)
+    else:
+        new_cmdline = args.cmdline.strip()
     install_packages()
-
-    # Get the root device
-    kernel_partition = sp.run("mount | grep ' / ' | cut -d' ' -f 1", shell=True, capture_output=True).stdout.decode(
-        "utf-8").strip() + "1"
+    kernel_partition = f"{partitions}1"
     # Get the current kernel's command line
     current_cmdline = sp.run("cat /proc/cmdline", shell=True, capture_output=True).stdout.decode("utf-8").strip()
     # Write the new kernel commandline to a file
@@ -50,9 +71,9 @@ if __name__ == '__main__':
             file.write(new_cmdline)
     # Copy old kernel partition
     bash(f"dd if={kernel_partition} of=kernel_part")
-    # Sign new kernel partition
+    print("Signing new kernel")
     bash("futility vbutil_kernel --repack new_kernel_part --version 1 --keyblock " +
          "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
          "--oldblob kernel_part --config cmdline")
-    # Flash new kernel partition
+    print("Flashing new kernel")
     bash(f'sudo dd if=new_kernel_part of={kernel_partition}')
