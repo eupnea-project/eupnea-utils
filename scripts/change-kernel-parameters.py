@@ -2,70 +2,57 @@
 
 import argparse
 import os.path
+from os import system as bash
 import subprocess as sp
 
 
-def parseArgs():
-    # Create the parser and add arguments
+# parse arguments from the cli.
+def process_args():
     parser = argparse.ArgumentParser()
-
-    # Positional argument for the cmdline
-    parser.add_argument(
-        dest='cmdline',
-        type=str, nargs=1,
-        help="The new kernel command line (also known as its parameters)"
-    )
-
-    # Boolean flag that doesn't accept data
-    parser.add_argument(
-        '-a', '--append',
-        action="store_true", default=False,
-        help="Append a flag rather than replacing the whole command line"
-    )
-
-    # Parse the arguments
-    global args
-    args = parser.parse_args()
+    parser.add_argument('-a', '--append', action="store_true", dest="append", default=False,
+                        help="Append a flag rather than replacing the whole command line")
+    parser.add_argument(dest='cmdline', type=str, nargs=1,
+                        help="New, full kernel command line, example: \n"
+                             + r'change-kernel-parameters "console=tty1 root=PARTUUID=7d83c214-289e-4e8b-93cc-685aea502'
+                               r'f59 i915.modeset=1 rootwait rw fbcon=logo-pos:center,logo-count:1 loglevel=0 splash"')
+    return parser.parse_args()
 
 
-def installPackages():
+def install_packages() -> None:
     if not os.path.exists('/usr/bin/futility'):
         if os.path.exists('/usr/bin/apt'):
             os.system('sudo apt install -y vboot-kernel-utils')
+        elif os.path.exists("/usr/bin/pacman"):
+            bash("pacman -S vboot-kernel-utils --noconfirm")
+        elif os.path.exists("/usr/bin/dnf"):
+            bash("dnf install vboot-kernel-utils --assumeyes")
         else:
-            print("Please install vboot-kernel-utils or vboot-utils for the futility binary.")
-            sys.exit(1)
+            print("Vboot-kernel-utils not found. Please install vboot-kernel-utils or vboot-utils using your distros" +
+                  " package manager.")
+            exit(1)
 
 
-def generateNewKernel():
+if __name__ == '__main__':
+    args = process_args()
+    new_cmdline = args.cmdline.strip()
+    install_packages()
+
     # Get the root device
-    rootProcess = sp.Popen("mount | grep ' / ' | cut -d' ' -f 1", shell=True, stdout=sp.PIPE)
-    rootDevice = rootProcess.communicate()[0]
-    global kernelPartition
-    kernelPartition = rootDevice[:-2].decode() + '1'
-
+    kernel_partition = sp.run("mount | grep ' / ' | cut -d' ' -f 1", shell=True, capture_output=True).stdout.decode(
+        "utf-8").strip() + "1"
     # Get the current kernel's command line
-    cmdlineProcess = sp.Popen("cat /proc/cmdline", shell=True, stdout=sp.PIPE)
-    cmdline = cmdlineProcess.communicate()[0]
-
+    current_cmdline = sp.run("cat /proc/cmdline", shell=True, capture_output=True).stdout.decode("utf-8").strip()
     # Write the new kernel commandline to a file
-    with open('cmdline', 'w') as f:
+    with open('cmdline', 'w') as file:
         if args.append:
-            f.write(f"{cmdline} {args.cmdline[0]}")
+            file.write(f"{current_cmdline} {new_cmdline}")  # space needed as both args have no spaces before and after
         else:
-            f.write(args.cmdline[0])
-
-    sp.run(f'dd if={kernelPartition} of=kernelpart', shell=True, check=True)
-    sp.run(
-        f'futility vbutil_kernel --repack newKernelPart --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --oldblob kernelpart --config cmdline',
-        shell=True, check=True)
-
-
-def flashKernel():
-    sp.run(f'sudo dd if=newKernelPart of={kernelPartition}', check=True, shell=True)
-
-
-parseArgs()
-installPackages()
-generateNewKernel()
-flashKernel()
+            file.write(new_cmdline)
+    # Copy old kernel partition
+    bash(f"dd if={kernel_partition} of=kernel_part")
+    # Sign new kernel partition
+    bash("futility vbutil_kernel --repack new_kernel_part --version 1 --keyblock " +
+         "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
+         "--oldblob kernel_part --config cmdline")
+    # Flash new kernel partition
+    bash(f'sudo dd if=new_kernel_part of={kernel_partition}')
