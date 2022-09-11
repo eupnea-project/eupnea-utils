@@ -15,8 +15,9 @@ if __name__ == "__main__":
         "utf-8").strip()
     root_part = root_part[:len(root_part) - 1]  # get device "name"
     bash(f"growpart {root_part} 2")
-    # remove hook from bashrc
+    # get current config
     sp.run("crontab -l -u root > /tmp/crontab.current", shell=True)
+    # remove hook from bashrc
     with open("/tmp/crontab.current", "r") as file:
         temp_crontab = file.readlines()
         for line in temp_crontab:
@@ -26,3 +27,5 @@ if __name__ == "__main__":
         file.writelines(temp_crontab)
     # write new crontab
     bash("crontab -u root /tmp/crontab.new")
+    # TODO: remove next line
+    bash("touch /etc/I-RAN.txt")
