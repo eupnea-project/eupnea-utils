@@ -187,4 +187,3 @@ if __name__ == "__main__":
 
     flash_kernel()
     print_header("Kernel update complete! ")
-    print_header("It is safe to remove the USB-drive/SD-card now.")
