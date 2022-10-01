@@ -15,8 +15,8 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--local-path', dest="local_path",
                         help="Local path for kernel files to use instead of downloading from github.")
-    parser.add_argument("--stable", action="store_true", dest="stable_build", default=False,
-                        help="Use kernels from latest dev build. May be unstable.")
+    parser.add_argument("--stable", action="store_true", dest="stable", default=False,
+                        help="Use stable kernel.")
     parser.add_argument("--dev", action="store_true", dest="dev_build", default=False,
                         help="Use kernels from latest dev build. May be unstable.")
     parser.add_argument("--alt", action="store_true", dest="alt", default=False,
@@ -38,7 +38,7 @@ def prepare_host() -> None:
     print_status("Cleaning + preparing host system")
     rmdir("/tmp/eupnea-update")
     mkdir("/tmp/eupnea-update", create_parents=True)
-    install_vboot(user_id)
+    install_build_packages(user_id)
 
 
 # download kernel files from GitHub
@@ -56,24 +56,24 @@ def download_kernel() -> None:
             case "mainline":
                 print_status("Downloading mainline kernel")
                 url = "https://github.com/eupnea-linux/mainline-kernel/releases/latest/download/"
-                urlretrieve(f"{url}bzImage-stable", filename="/tmp/eupnea-external/bzImage")
-                urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/eupnea-external/modules.tar.xz")
-                urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/eupnea-external/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-stable", filename="/tmp/eupnea-update/bzImage")
+                urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
             case "alt":
                 print_status("Downloading alt kernel")
-                urlretrieve(f"{url}bzImage-alt", filename="/tmp/eupnea-external/bzImage")
-                urlretrieve(f"{url}modules-alt.tar.xz", filename="/tmp/eupnea-external/modules.tar.xz")
-                urlretrieve(f"{url}headers-alt.tar.xz", filename="/tmp/eupnea-external/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-alt", filename="/tmp/eupnea-update/bzImage")
+                urlretrieve(f"{url}modules-alt.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-alt.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
             case "exp":
                 print_status("Downloading experimental 5.15 kernel")
-                urlretrieve(f"{url}bzImage-exp", filename="/tmp/eupnea-external/bzImage")
-                urlretrieve(f"{url}modules-exp.tar.xz", filename="/tmp/eupnea-external/modules.tar.xz")
-                urlretrieve(f"{url}headers-exp.tar.xz", filename="/tmp/eupnea-external/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-exp", filename="/tmp/eupnea-update/bzImage")
+                urlretrieve(f"{url}modules-exp.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-exp.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
             case "stable":
                 print_status("Downloading stable 5.10 kernel")
-                urlretrieve(f"{url}bzImage", filename="/tmp/eupnea-external/bzImage")
-                urlretrieve(f"{url}modules.tar.xz", filename="/tmp/eupnea-external/modules.tar.xz")
-                urlretrieve(f"{url}headers.tar.xz", filename="/tmp/eupnea-external/headers.tar.xz")
+                urlretrieve(f"{url}bzImage", filename="/tmp/eupnea-update/bzImage")
+                urlretrieve(f"{url}modules.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
+                urlretrieve(f"{url}headers.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
     except URLError:
         print_error("Failed to reach github. Check your internet connection and try again or use local files with -l")
         exit(1)
@@ -165,6 +165,7 @@ if __name__ == "__main__":
         # read kernel version from eupnea settings file
         with open("/usr/local/eupnea-configs/eupnea-settings.json", "r") as file:
             selected_kernel_type = json.load(file)["kernel_type"]
+    print_status(f"Updating kernel type: {selected_kernel_type}")
 
     # read root partition mount
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
@@ -179,7 +180,7 @@ if __name__ == "__main__":
             kernel_path = f"{args.local_path}/"
         else:
             kernel_path = args.local_path
-        print_status("Copying local files to /tmp/eupnea-external")
+        print_status("Copying local files to /tmp/eupnea-update")
         cpfile(f"{kernel_path}bzImage", "/tmp/eupnea-update/bzImage")
         cpfile(f"{kernel_path}modules.tar.xz", "/tmp/eupnea-update/modules.tar.xz")
         cpfile(f"{kernel_path}headers.tar.xz", "/tmp/eupnea-update/headers.tar.xz")
