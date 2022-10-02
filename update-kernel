@@ -38,7 +38,7 @@ def prepare_host() -> None:
     print_status("Cleaning + preparing host system")
     rmdir("/tmp/eupnea-update")
     mkdir("/tmp/eupnea-update", create_parents=True)
-    install_build_packages(user_id)
+    install_kernel_packages(user_id)
 
 
 # download kernel files from GitHub
@@ -94,8 +94,11 @@ def flash_kernel() -> None:
     bash(f"tar xpf /tmp/eupnea-update/modules.tar.xz --skip-old-files -C / --checkpoint=.10000")
     print("")  # break line after tar
 
+    # Extract kernel headers
     print_status("Extracting kernel headers")
-    # TODO: extract kernel headers
+    # headers.tar.xz contains /include, so it's extracted to /usr/ and --skip-old-files is used to prevent it from
+    # overwriting other files in /usr/include
+    bash("tar xpf /tmp/eupnea-update/headers.tar.xz --skip-old-files -C /usr/ --checkpoint=.10000")
     print("")  # break line after tar
 
     rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {device}2")  # get uuid of rootfs partition
