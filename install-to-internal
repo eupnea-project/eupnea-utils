@@ -123,6 +123,7 @@ if __name__ == "__main__":
         print_warning("Verbosity increased")
         set_verbose(args.verbose)  # enable verbose output in functions.py
 
+    prevent_idle()
     prepare_host()
 
     # read root partition mount
