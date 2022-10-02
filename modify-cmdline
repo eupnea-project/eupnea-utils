@@ -75,7 +75,7 @@ if __name__ == '__main__':
             exit(1)
         new_cmdline = args.cmdline.strip()
 
-    install_build_packages(user_id)
+    install_kernel_packages(user_id)
 
     # Write the new kernel commandline to a file
     with open('cmdline', 'w') as file:
