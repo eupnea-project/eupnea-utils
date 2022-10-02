@@ -96,8 +96,8 @@ def partition_and_flash():
     # Create rootfs ext4 partition
     bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p2")  # 2>/dev/null is to supress yes broken pipe warning
 
-    # Copy rootfs to internal
-    bash(f'sudo dd if={src_device}2 of={internal_name}p2')
+    print_status("Copying rootfs to internal storage")
+    bash(f'sudo dd if={src_device}2 of={internal_name}p2 status=progress')
 
 
 if __name__ == "__main__":
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         lsblk_out = bash("lsblk -nd -o NAME,MODEL,SIZE,TRAN").splitlines()
         for line in lsblk_out:
             if not line.find("mmcblk") == -1 or not line.find("nvme") == -1:
-                storage_array.append(line[:7])  # get actual device name
+                storage_array.append(line[:7].strip())  # get actual device name
                 break
         if len(storage_array) == 0:
             print_error("No internal storage found... Please create an issue")
@@ -149,8 +149,6 @@ if __name__ == "__main__":
                 "\033[92m" + 'Multiple storages found, which one should be used?(example: mmcblk0): ' +
                 "\033[0m" + "\n").strip()
             if internal_name in storage_array:
-                if internal_name.endswith("/") or internal_name.endswith("1") or internal_name.endswith("2"):
-                    internal_name = internal_name[:-1]
                 # add /dev/ to device name, if needed
                 if not internal_name.startswith("/dev/"):
                     internal_name = f"/dev/{internal_name}"
@@ -161,8 +159,6 @@ if __name__ == "__main__":
                 continue
         else:
             internal_name = storage_array[0]
-            if internal_name.endswith("/") or internal_name.endswith("1") or internal_name.endswith("2"):
-                internal_name = internal_name[:-1]
             # add /dev/ to device name, if needed
             if not internal_name.startswith("/dev/"):
                 internal_name = f"/dev/{internal_name}"
