@@ -37,7 +37,9 @@ if __name__ == '__main__':
         print_status("Current command line: ")
         print_question(bash("cat /proc/cmdline"))  # green color
         exit(1)
-    set_verbose(args.verbose)  # enable verbose output in functions.py
+    if args.verbose:
+        print_warning("Verbosity increased")
+        set_verbose(args.verbose)  # enable verbose output in functions.py
 
     # Restart script as root
     if not os.geteuid() == 0:

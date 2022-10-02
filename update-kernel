@@ -158,7 +158,9 @@ if __name__ == "__main__":
         selected_kernel_type = "mainline"
     if args.local_path:
         print_warning("Using local path")
-    set_verbose(args.verbose)  # set verbose in functions.py
+    if args.verbose:
+        print_warning("Verbosity increased")
+        set_verbose(args.verbose)  # enable verbose output in functions.py
 
     # If user hasn't passed a kernel type cli option
     if not (args.stable or args.alt or args.exp or args.mainline):
