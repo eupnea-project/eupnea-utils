@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     if build_type == "image":  # do not resize on direct installs
         bash(f"growpart {root_part} 2")  # grow root partition
-        bash(f"partprobe partprobe {root_part}")  # reload partition table
+        bash(f"partprobe {root_part}")  # reload partition table
         bash(f"resize2fs {root_part}2")  # expand root partition
 
     # Device specific things:
