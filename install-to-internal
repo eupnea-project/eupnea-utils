@@ -167,6 +167,7 @@ if __name__ == "__main__":
             if not internal_name.startswith("/dev/"):
                 internal_name = f"/dev/{internal_name}"
             print_status(f"{internal_name} selected")
+            break
 
     partition_and_flash()
     print_header("Eupnea has been installed to internal storage successfully")
