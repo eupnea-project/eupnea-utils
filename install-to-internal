@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import json
+import argparse
+from urllib.error import URLError
+from urllib.request import urlretrieve, urlopen
+
+from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
+    return parser.parse_args()
+
+
+# Prepare host
+def prepare_host() -> None:
+    print_status("Preparing host system")
+
+    rmfile("kernel.flags")
+
+    # Install dependencies
+    install_kernel_packages(user_id)
+    # Install parted
+    if not path_exists("/usr/sbin/parted"):
+        print_status("Installing parted")
+        if path_exists("/usr/bin/apt"):  # Ubuntu + debian
+            bash("apt-get install parted -y")
+        elif path_exists("/usr/bin/pacman"):  # Arch
+            # install parted
+            bash("pacman -S parted --noconfirm")
+
+        elif path_exists("/usr/bin/dnf"):  # Fedora
+            bash("dnf install parted --assumeyes")  # cgpt is included in vboot-utils on fedora
+        elif path_exists("/usr/bin/zypper"):  # openSUSE
+            bash("zypper --non-interactive install parted")
+        else:
+            print_warning("Parted not found, please install it using your distros package manager")
+            exit(1)
+
+
+# Configure distro agnostic options
+def partition_and_flash():
+    print_status("Preparing to install to internal storage")
+    # unmount all internal partitions
+    try:
+        bash(f"umount -lf {internal_name}*")
+    except subprocess.CalledProcessError:
+        pass
+
+    # ask user for final confirmation
+    input("\033[92m" + "Are you absolutely sure you want to wipe your internal drive and install Eupnea to it? Enter"
+                       " to continue or Ctrl+C to abort" + "\033[0m")
+
+    # remove pre-existing partition table from internal storage
+    bash(f"wipefs -af {internal_name}")
+
+    # format as per depthcharge requirements,
+    # READ: https://wiki.gentoo.org/wiki/Creating_bootable_media_for_depthcharge_based_devices
+    bash(f"parted -s {internal_name} mklabel gpt")
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 1 65")  # kernel partition
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 65 100%")  # rootfs partition
+    bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # depthcharge flags
+
+    # get uuid of rootfs partition
+    rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {internal_name}p2")
+
+    # read current cmdline and update its partuuid
+    with open("/proc/cmdline", "r") as flags:
+        old_cmdline = flags.read()[12:]  # remove cros_secure from the start
+    # replace partuuid with the new one
+    cmdline_start = old_cmdline.find("root=PARTUUID=") + 14
+    cmdline_end = cmdline_start + 36
+    new_cmdline = old_cmdline[:cmdline_start] + rootfs_partuuid + old_cmdline[cmdline_end:]
+    with open("kernel.flags", "w") as config:
+        config.write(new_cmdline)
+
+    print_status(f"New cmdline: {new_cmdline}")
+
+    # Copy usb kernel partition
+    kernel_partition = f"{src_device}1"
+    bash(f"dd if={kernel_partition} of=usb_kernel")
+
+    print_status("Signing kernel")
+    bash("futility vbutil_kernel --repack internal_kernel --version 1 --keyblock " +
+         "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
+         "--oldblob usb_kernel --config kernel.flags")
+    print_status("Flashing updated kernel")
+    bash(f'sudo dd if=internal_kernel of={internal_name}p1')
+
+    print_status("Formatting internal rootfs part")
+    # Create rootfs ext4 partition
+    bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p2")  # 2>/dev/null is to supress yes broken pipe warning
+
+    # Copy rootfs to internal
+    bash(f'sudo dd if={src_device}2 of={internal_name}p2')
+
+
+if __name__ == "__main__":
+    if os.geteuid() == 0 and not path_exists("/tmp/username"):
+        print_error("Please start the script as non-root/without sudo")
+        exit(1)
+
+    args = process_args()  # process args before elevating to root for better ux
+
+    # Restart script as root
+    if not os.geteuid() == 0:
+        # save username
+        with open("/tmp/username", "w") as file:
+            file.write(bash("whoami").strip())  # get non root username. os.getlogin() seems to fail in chroots
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
+    # read username
+    with open("/tmp/username", "r") as file:
+        user_id = file.read()
+
+    if args.verbose:
+        print_warning("Verbosity increased")
+        set_verbose(args.verbose)  # enable verbose output in functions.py
+
+    prepare_host()
+
+    # read root partition mount
+    root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
+    src_device = root_part[:-1]  # get usb device "name"
+
+    install_kernel_packages(user_id)
+
+    # get internal storage name
+    while True:
+        storage_array = []
+        lsblk_out = bash("lsblk -nd -o NAME,MODEL,SIZE,TRAN").splitlines()
+        for line in lsblk_out:
+            if not line.find("mmcblk") == -1 or not line.find("nvme") == -1:
+                storage_array.append(line[:7])  # get actual device name
+                break
+        if len(storage_array) == 0:
+            print_error("No internal storage found... Please create an issue")
+            exit(1)
+        elif not len(storage_array) == 1:
+            for line in storage_array:
+                print(line)
+            internal_name = input(
+                "\033[92m" + 'Multiple storages found, which one should be used?(example: mmcblk0): ' +
+                "\033[0m" + "\n").strip()
+            if internal_name in storage_array:
+                if internal_name.endswith("/") or internal_name.endswith("1") or internal_name.endswith("2"):
+                    internal_name = internal_name[:-1]
+                # add /dev/ to device name, if needed
+                if not internal_name.startswith("/dev/"):
+                    internal_name = f"/dev/{internal_name}"
+                print_status(f"{internal_name} selected")
+                break
+            else:
+                print_warning("No such device, please try again")
+                continue
+        else:
+            internal_name = storage_array[0]
+            if internal_name.endswith("/") or internal_name.endswith("1") or internal_name.endswith("2"):
+                internal_name = internal_name[:-1]
+            # add /dev/ to device name, if needed
+            if not internal_name.startswith("/dev/"):
+                internal_name = f"/dev/{internal_name}"
+            print_status(f"{internal_name} selected")
+
+    partition_and_flash()
+    print_header("Eupnea has been installed to internal storage successfully")
+    print_header("You can now boot Eupnea from internal storage")
