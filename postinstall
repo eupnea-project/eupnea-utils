@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 from functions import *
 
 if __name__ == "__main__":
@@ -13,10 +14,14 @@ if __name__ == "__main__":
     # read root partition mount
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
     root_part = root_part[:-1]  # get device "name"
-    try:
-        bash(f"growpart {root_part} 2")
-    except subprocess.CalledProcessError:  # despite succeeding, growpart returns exit-code
-        pass
+
+    with open("/usr/local/eupnea-configs/eupnea-settings.json", "r") as file:
+        build_type = json.load(file)["eupnea_build_type"]
+
+    if build_type == "image":  # do not resize on direct installs
+        bash(f"growpart {root_part} 2")  # grow root partition
+        bash(f"partprobe partprobe {root_part}")  # reload partition table
+        bash(f"resize2fs {root_part}2")  # expand root partition
 
     # Device specific things:
     match bash("sudo dmidecode --string system-product-name").lower():
