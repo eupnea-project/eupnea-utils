@@ -17,12 +17,15 @@ if __name__ == "__main__":
     root_part = root_part[:-1]  # get device "name"
 
     with open("/usr/local/eupnea-configs/eupnea-settings.json", "r") as file:
-        build_type = json.load(file)["eupnea_build_type"]
+        install_type = json.load(file)["eupnea_install_type"]
 
-    if build_type == "image":  # do not resize on direct installs
+    if install_type == "image" or install_type == "internal":  # do not resize on direct installs
         bash(f"growpart {root_part} 2")  # grow root partition
         bash(f"partprobe {root_part}")  # reload partition table
-        bash(f"resize2fs {root_part}2")  # expand root partition
+        if install_type == "image":
+            bash(f"resize2fs {root_part}2")  # expand root partition
+        elif install_type == "internal":
+            bash(f"resize2fs {root_part}p2")  # expand root partition
 
     # Device specific things:
     match bash("sudo dmidecode --string system-product-name").lower():
@@ -31,7 +34,7 @@ if __name__ == "__main__":
             # TODO: Add multitouch support
 
             # copy systemd file from config
-            cpfile("/usr/local/config/device-specific/sona_laser/touchscreen-fix.service",
+            cpfile("/usr/local/eupnea-configs/device-specific/sona_laser/touchscreen-fix.service",
                    "/etc/systemd/system/touchscreen-fix.service")
             # enable service
             bash("systemctl enable touchscreen-fix.service")
@@ -41,9 +44,9 @@ if __name__ == "__main__":
             # Copy ucm config for amd audio
             mkdir("/usr/share/alsa/ucm2/AMD/acp3xalc5682m98")
             # cp ucm configs
-            cpfile("/usr/local/config/device-specific/amd-ucm/HiFi.conf",
+            cpfile("/usr/local/eupnea-configs/device-specific/amd-ucm/HiFi.conf",
                    "/usr/share/alsa/ucm2/AMD/acp3xalc5682m98/HiFi.conf")
-            cpfile("/usr/local/config/device-specific/amd-ucm/acp3xalc5682m98.conf",
+            cpfile("/usr/local/eupnea-configs/device-specific/amd-ucm/acp3xalc5682m98.conf",
                    "/usr/share/alsa/ucm2/AMD/acp3xalc5682m98/acp3xalc5682m98.conf")
             # create conf.d symlink
             mkdir("/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98")

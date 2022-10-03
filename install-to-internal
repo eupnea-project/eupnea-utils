@@ -100,6 +100,32 @@ def partition_and_flash():
     bash(f'sudo dd if={src_device}2 of={internal_name}p2 status=progress')
 
 
+# Force internal to resize on first boot
+def post_copy() -> None:
+    # Mount internal rootfs
+    mkdir("/mnt/eupnea-internal")
+    bash(f"mount {internal_name}p2 /mnt/eupnea-internal")
+
+    # set build type to image in eupnea settings
+    with open("/mnt/eupnea-internal/usr/local/eupnea-settings.json", "r") as settings_file:
+        settings = json.load(settings_file)
+    settings["eupnea_install_type"] = "internal"
+    with open("/mnt/eupnea-internal/usr/local/eupnea-settings.json", "w") as settings_file:
+        json.dump(settings, settings_file)
+
+    # add postconfig service hook
+    # Add postinstall service
+    print_status("Adding postinstall service")
+    cpfile("/usr/local/eupnea-configs/postinstall.service",
+           "/mnt/eupnea-internal/etc/systemd/system/postinstall.service")
+    chroot("systemctl enable postinstall.service")
+
+
+# chroot command
+def chroot(command: str) -> str:
+    return bash(f'chroot /mnt/eupnea-internal /bin/sh -c "{command}"')
+
+
 if __name__ == "__main__":
     if os.geteuid() == 0 and not path_exists("/tmp/username"):
         print_error("Please start the script as non-root/without sudo")
@@ -167,5 +193,6 @@ if __name__ == "__main__":
             break
 
     partition_and_flash()
+    post_copy()
     print_header("Eupnea has been installed to internal storage successfully")
     print_header("You can now boot Eupnea from internal storage")
