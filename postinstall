@@ -10,6 +10,7 @@ if __name__ == "__main__":
     if not os.geteuid() == 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
+
     # Expand root partition to whole drive
     # read root partition mount
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")

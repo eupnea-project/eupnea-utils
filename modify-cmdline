@@ -27,31 +27,26 @@ def process_args():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-    if os.geteuid() == 0 and not path_exists("/tmp/username"):
+if __name__ == "__main__":
+    if os.geteuid() == 0 and not path_exists("/tmp/.eupnea_root_ok"):
         print_error("Please start the script as non-root/without sudo")
         exit(1)
 
     args = process_args()  # process args before elevating to root for better ux
-    if args.show:
-        print_status("Current command line: ")
-        print_question(bash("cat /proc/cmdline"))  # green color
-        exit(1)
-    if args.verbose:
-        print_warning("Verbosity increased")
-        set_verbose(args.verbose)  # enable verbose output in functions.py
+
+    # install kernel packages before elevating to root, as makepkg needs to be run as non-root
+    install_kernel_packages()
 
     # Restart script as root
     if not os.geteuid() == 0:
-        # save username
-        with open("/tmp/username", "w") as file:
-            file.write(bash("whoami").strip())  # get non root username. os.getlogin() seems to fail in chroots
+        # create empty file to confirm script was started as non-root
+        with open("/tmp/.eupnea_root_ok", "w") as file:
+            file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    # read username
-    with open("/tmp/username", "r") as file:
-        user_id = file.read()
+    # delete file to confirm script was started as root
+    rmfile("/tmp/.eupnea_root_ok")
 
     print_status("Reading partition table")
     partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
@@ -74,8 +69,6 @@ if __name__ == '__main__':
             print_error("No cmdline provided. Use --help for help")
             exit(1)
         new_cmdline = args.cmdline.strip()
-
-    install_kernel_packages(user_id)
 
     # Write the new kernel commandline to a file
     with open('cmdline', 'w') as file:
