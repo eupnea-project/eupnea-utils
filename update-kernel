@@ -193,3 +193,6 @@ if __name__ == "__main__":
 
     flash_kernel()
     print_header("Kernel update complete! ")
+    print_warning("REBOOTING IN 5 SECONDS... Press Ctrl+C to cancel")
+    sleep(5)
+    bash("reboot")
