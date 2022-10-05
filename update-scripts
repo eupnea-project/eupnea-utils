@@ -67,7 +67,9 @@ if __name__ == "__main__":
             if file.name == "LICENSE" or file.name == "README.md" or file.name == ".gitignore":
                 continue  # dont copy license, readme and gitignore
             else:
-                cpfile(file.absolute().as_posix(), f"/mnt/eupnea/usr/local/bin/{file.name}")
+                cpfile(file.absolute().as_posix(), f"/usr/local/bin/{file.name}")
 
     # Copy configs
-    cpdir("/tmp/eupnea-scripts-update/configs", "/mnt/eupnea/etc/eupnea")
+    cpdir("/tmp/eupnea-scripts-update/configs", "/etc/eupnea")
+
+    print_header("Scripts updated successfully")
