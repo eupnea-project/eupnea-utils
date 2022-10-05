@@ -51,7 +51,10 @@ if __name__ == "__main__":
     with open("/tmp/eupnea-scripts-update/configs/to-delete.conf", "r") as file:
         to_delete = file.readlines()
     for script in to_delete:
-        rmfile(script)
+        if script.startswith("#"):
+            continue
+        else:
+            rmfile(script)
 
     # Copy new scripts to /usr/local/bin
     print_status("Copying eupnea scripts and configs")
