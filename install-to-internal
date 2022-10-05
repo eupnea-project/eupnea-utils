@@ -107,16 +107,16 @@ def post_copy() -> None:
     bash(f"mount {internal_name}p2 /mnt/eupnea-internal")
 
     # set build type to image in eupnea settings
-    with open("/mnt/eupnea-internal/usr/local/eupnea-settings.json", "r") as settings_file:
+    with open("/mnt/eupnea-internal/etc/eupnea.json", "r") as settings_file:
         settings = json.load(settings_file)
     settings["eupnea_install_type"] = "internal"
-    with open("/mnt/eupnea-internal/usr/local/eupnea-settings.json", "w") as settings_file:
+    with open("/mnt/eupnea-internal/etc/eupnea.json", "w") as settings_file:
         json.dump(settings, settings_file)
 
     # add postconfig service hook
     # Add postinstall service
     print_status("Adding postinstall service")
-    cpfile("/usr/local/eupnea-configs/postinstall.service",
+    cpfile("/etc/postinstall.service",
            "/mnt/eupnea-internal/etc/systemd/system/postinstall.service")
     chroot("systemctl enable postinstall.service")
 

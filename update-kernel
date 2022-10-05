@@ -169,7 +169,7 @@ if __name__ == "__main__":
     # If user hasn't passed a kernel type cli option
     if not (args.stable or args.alt or args.exp or args.mainline):
         # read kernel version from eupnea settings file
-        with open("/usr/local/eupnea-configs/eupnea-settings.json", "r") as file:
+        with open("/etc/eupnea-settings.json", "r") as file:
             selected_kernel_type = json.load(file)["kernel_type"]
     print_status(f"Updating kernel type: {selected_kernel_type}")
 
