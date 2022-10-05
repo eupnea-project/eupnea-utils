@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
+import os
+import sys
+import json
+import argparse
+from urllib.error import URLError
+from urllib.request import urlretrieve, urlopen
+
 from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dev", action="store_true", dest="dev", default=False,
+                        help="Use unstable scripts from dev branch")
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
+    return parser.parse_args()
+
 
 # This script will update the postinstall scripts on an existing installation.
 if __name__ == "__main__":
@@ -8,9 +25,6 @@ if __name__ == "__main__":
         exit(1)
 
     args = process_args()  # process args before elevating to root for better ux
-
-    # install kernel packages before elevating to root, as makepkg needs to be run as non-root
-    install_kernel_packages()
 
     # Restart script as root
     if not os.geteuid() == 0:
@@ -22,3 +36,32 @@ if __name__ == "__main__":
 
     # delete file to confirm script was started as root
     rmfile("/tmp/.eupnea_root_ok")
+
+    # download scripts from github
+    print_status("Downloading scripts from github")
+    start_progress()  # start fake download progress
+    if args.dev:
+        # TODO: add dev branch
+        pass
+    else:
+        bash("git clone --depth=1 https://github.com/eupnea-linux/postinstall-scripts.git /tmp/eupnea-scripts-update")
+    stop_progress()  # stop fake download progress
+
+    # Delete old scripts
+    with open("/tmp/eupnea-scripts-update/configs/to-delete.conf", "r") as file:
+        to_delete = file.readlines()
+    for script in to_delete:
+        rmfile(script)
+
+    # Copy new scripts to /usr/local/bin
+    print_status("Copying eupnea scripts and configs")
+    # Copy postinstall scripts
+    for file in Path("/tmp/eupnea-build/postinstall-scripts").iterdir():
+        if file.is_file():
+            if file.name == "LICENSE" or file.name == "README.md" or file.name == ".gitignore":
+                continue  # dont copy license, readme and gitignore
+            else:
+                cpfile(file.absolute().as_posix(), f"/mnt/eupnea/usr/local/bin/{file.name}")
+
+    # Copy configs
+    cpdir("/tmp/eupnea-build/configs", "/mnt/eupnea/etc/eupnea")
