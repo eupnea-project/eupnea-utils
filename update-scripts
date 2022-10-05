@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # Copy new scripts to /usr/local/bin
     print_status("Copying eupnea scripts and configs")
     # Copy postinstall scripts
-    for file in Path("/tmp/eupnea-build/postinstall-scripts").iterdir():
+    for file in Path("/tmp/eupnea-scripts-update").iterdir():
         if file.is_file():
             if file.name == "LICENSE" or file.name == "README.md" or file.name == ".gitignore":
                 continue  # dont copy license, readme and gitignore
@@ -70,4 +70,4 @@ if __name__ == "__main__":
                 cpfile(file.absolute().as_posix(), f"/mnt/eupnea/usr/local/bin/{file.name}")
 
     # Copy configs
-    cpdir("/tmp/eupnea-build/configs", "/mnt/eupnea/etc/eupnea")
+    cpdir("/tmp/eupnea-scripts-update/configs", "/mnt/eupnea/etc/eupnea")
