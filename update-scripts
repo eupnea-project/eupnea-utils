@@ -37,7 +37,10 @@ if __name__ == "__main__":
     # delete file to confirm script was started as root
     rmfile("/tmp/.eupnea_root_ok")
 
-    # download scripts from github
+    # delete old scripts tmp dir
+    rmdir("/tmp/eupnea-scripts-update", keep_dir=False)
+
+    # download scripts from GitHub
     print_status("Downloading scripts from github")
     start_progress()  # start fake download progress
     if args.dev:
