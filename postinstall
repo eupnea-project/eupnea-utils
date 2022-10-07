@@ -16,7 +16,7 @@ if __name__ == "__main__":
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
     root_part = root_part[:-1]  # get device "name"
 
-    with open("/etc/eupnea-settings.json", "r") as file:
+    with open("/etc/eupnea.json", "r") as file:
         install_type = json.load(file)["eupnea_install_type"]
 
     if install_type == "image" or install_type == "internal":  # do not resize on direct installs
