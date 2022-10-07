@@ -11,13 +11,15 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
+    with open("/etc/eupnea.json", "r") as file:
+        install_type = json.load(file)["eupnea_install_type"]
+
     # Expand root partition to whole drive
     # read root partition mount
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
     root_part = root_part[:-1]  # get device "name"
-
-    with open("/etc/eupnea.json", "r") as file:
-        install_type = json.load(file)["eupnea_install_type"]
+    if install_type == "internal":
+        root_part = root_part[:-1]  # remove "p" from device name
 
     if install_type == "image" or install_type == "internal":  # do not resize on direct installs
         bash(f"growpart {root_part} 2")  # grow root partition
