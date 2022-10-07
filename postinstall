@@ -55,4 +55,5 @@ if __name__ == "__main__":
 
     # delete systemd service
     bash("systemctl disable postinstall.service")
+    cpfile("/etc/systemd/system/postinstall.service", "/etc/systemd/system/postinstall.service.disabled")
     rmfile("/etc/systemd/system/postinstall.service")

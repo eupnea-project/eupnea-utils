@@ -72,9 +72,9 @@ if __name__ == "__main__":
     # Copy configs
     cpdir("/tmp/eupnea-scripts-update/configs", "/etc/eupnea")
 
-    # Re-add postinstall service
-    print_status("Adding postinstall service")
-    cpfile("/etc/eupnea/postinstall.service", "/mnt/eupnea/etc/systemd/system/postinstall.service")
+    # Re enable postinstall service
+    print_status("Enabling postinstall service")
+    cpfile("/etc/systemd/system/postinstall.service.disabled", "/etc/systemd/system/postinstall.service")
     bash("systemctl enable postinstall.service")
 
     print_header("Scripts updated successfully")
