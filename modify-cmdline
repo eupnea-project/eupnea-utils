@@ -35,7 +35,8 @@ if __name__ == "__main__":
     args = process_args()  # process args before elevating to root for better ux
     if args.print_current:
         print_header("Current command line: ")
-        print(bash("cat /proc/cmdline"))
+        with open("/proc/cmdline", "r") as file:
+            print(file.read())
         exit(1)
 
     # install kernel packages before elevating to root, as makepkg needs to be run as non-root
@@ -78,7 +79,8 @@ if __name__ == "__main__":
     with open('cmdline', 'w') as file:
         if args.append:
             # Get the current kernel's command line
-            current_cmdline = bash("cat /proc/cmdline")
+            with open("/proc/cmdline", "r") as file:
+                current_cmdline = file.read().strip()
             file.write(f"{current_cmdline} {new_cmdline}")  # space needed as both args have no spaces before and after
         else:
             file.write(new_cmdline)
