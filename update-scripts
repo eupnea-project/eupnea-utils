@@ -38,7 +38,7 @@ if __name__ == "__main__":
     rmfile("/tmp/.eupnea_root_ok")
 
     # delete old scripts tmp dir
-    rmdir("/tmp/eupnea-scripts-update", keep_dir=False)
+    rmdir("/tmp/eupnea-scripts-update")
 
     # download scripts from GitHub
     print_status("Downloading scripts from github")
@@ -47,11 +47,14 @@ if __name__ == "__main__":
         # TODO: add dev branch
         pass
     else:
-        bash("git clone --depth=1 https://github.com/eupnea-linux/postinstall-scripts.git /tmp/eupnea-scripts-update")
+        bash("git clone --depth=1 https://github.com/eupnea-linux/postinstall-scripts.git "
+             "/tmp/eupnea-scripts-update/postinstall")
+        bash("git clone --depth=1 https://github.com/eupnea-linux/audio-scripts.git "
+             "/tmp/eupnea-scripts-update/audio")
     stop_progress()  # stop fake download progress
 
     # Delete old scripts
-    with open("/tmp/eupnea-scripts-update/configs/to-delete.conf", "r") as file:
+    with open("/tmp/eupnea-scripts-update/postinstall/configs/to-delete.conf", "r") as file:
         to_delete = file.readlines()
     for script in to_delete:
         if script.startswith("#"):
@@ -62,15 +65,20 @@ if __name__ == "__main__":
     # Copy new scripts to /usr/local/bin
     print_status("Copying eupnea scripts and configs")
     # Copy postinstall scripts only
-    for file in Path("/tmp/eupnea-scripts-update").iterdir():
+    for file in Path("/tmp/eupnea-scripts-update/postinstall").iterdir():
         if file.is_file():
             if file.name == "LICENSE" or file.name == "README.md" or file.name == ".gitignore":
                 continue  # dont copy license, readme and gitignore
             else:
                 cpfile(file.absolute().as_posix(), f"/usr/local/bin/{file.name}")
+    # Copy audio script
+    cpfile("/tmp/eupnea-scripts-update/audio/setup-audio", "/usr/local/bin/setup-audio")
 
-    # Copy configs
-    cpdir("/tmp/eupnea-scripts-update/configs", "/etc/eupnea")
+    # Copy postinstall configs
+    cpdir("/tmp/eupnea-scripts-update/postinstall/configs", "/etc/eupnea")
+
+    # Copy audio configs
+    cpdir("/tmp/eupnea-scripts-update/audio/configs", "/etc/eupnea")
 
     # Re enable postinstall service
     print_status("Enabling postinstall service")
