@@ -15,7 +15,7 @@ def process_args():
                         help="Append a flag rather than replacing the whole command line")
     parser.add_argument('-r', '--reset', action="store_true", dest="reset", default=False,
                         help="Reset to default command line")
-    parser.add_argument('-p', '--print-current', action="store_true", dest="show", default=False,
+    parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
                         help="Show current command line")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
     # --set is more for ux than actual use
@@ -33,6 +33,10 @@ if __name__ == "__main__":
         exit(1)
 
     args = process_args()  # process args before elevating to root for better ux
+    if args.print_current:
+        print_header("Current command line: ")
+        print(bash("cat /proc/cmdline"))
+        exit(1)
 
     # install kernel packages before elevating to root, as makepkg needs to be run as non-root
     install_kernel_packages()
