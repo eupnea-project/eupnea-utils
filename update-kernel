@@ -100,21 +100,7 @@ def flash_kernel() -> None:
     bash("tar xpf /tmp/eupnea-update/headers.tar.xz --skip-old-files -C /usr/ --checkpoint=.10000")
     print("")  # break line after tar
 
-    rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {device}2")  # get uuid of rootfs partition
-
-    print_status("Downloading default command line from github")
-    try:
-        temp_cmdline = urlopen(
-            "https://raw.githubusercontent.com/eupnea-linux/eupnea/main/configs/kernel.flags").read().decode(
-            "utf-8")
-    except URLError:
-        print_warning("Failed to reach github. Fallback to hardcoded default cmdline")
-        temp_cmdline = "console=tty1 root=PARTUUID=${USB_ROOTFS} i915.modeset=1 rootwait rw fbcon=logo-pos:center" \
-                       ",logo-count:1 loglevel=0 splash"
-
-    new_cmdline = temp_cmdline.replace("${USB_ROOTFS}", rootfs_partuuid)  # add partuuid of rootfs
-    with open("kernel.flags", "w") as file:
-        file.write(new_cmdline)
+    cpfile("/proc/cmdline", "kernel.flags")  # Reuse current kernel flags
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock"
@@ -171,6 +157,7 @@ if __name__ == "__main__":
         # read kernel version from eupnea settings file
         with open("/etc/eupnea.json", "r") as file:
             selected_kernel_type = json.load(file)["kernel_type"]
+            distro_name = json.load(file)["distro"]
     print_status(f"Updating kernel type: {selected_kernel_type}")
 
     # read root partition mount
