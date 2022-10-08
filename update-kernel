@@ -95,10 +95,14 @@ def flash_kernel() -> None:
 
     # Extract kernel headers
     print_status("Extracting kernel headers")
-    # headers.tar.xz contains /include, so it's extracted to /usr/ and --skip-old-files is used to prevent it from
-    # overwriting other files in /usr/include
-    bash("tar xpf /tmp/eupnea-update/headers.tar.xz --skip-old-files -C /usr/ --checkpoint=.10000")
+    # TODO: set actual kernel version
+    kernel_version = "eupnea"
+    rmdir(f"/usr/src/linux-headers-{kernel_version}", keep_dir=False)
+    mkdir(f"/usr/src/linux-headers-{kernel_version}", create_parents=True)
+    bash(f"tar xpf /tmp/eupnea-update/headers.tar.xz -C /usr/src/linux-headers-{kernel_version}/ "
+         f"--checkpoint=.10000")
     print("")  # break line after tar
+    bash("ln -s /usr/src/linux-headers-*/ /lib/modules/*/build")  # use chroot for correct symlink
 
     cpfile("/proc/cmdline", "kernel.flags")  # Reuse current kernel flags
 
