@@ -11,6 +11,8 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
+    set_verbose(True)  # always run verbose
+
     with open("/etc/eupnea.json", "r") as file:
         install_type = json.load(file)["eupnea_install_type"]
 
