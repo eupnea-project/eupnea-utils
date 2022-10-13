@@ -31,13 +31,13 @@ def process_args():
     return parser.parse_args()
 
 
-# Clean /tmp from eupnea files
+# Clean old depthboot files from /tmp
 def prepare_host() -> None:
     print_status("Preparing host system")
 
     print_status("Cleaning + preparing host system")
-    rmdir("/tmp/eupnea-update")
-    mkdir("/tmp/eupnea-update", create_parents=True)
+    rmdir("/tmp/kernel-update")
+    mkdir("/tmp/kernel-update", create_parents=True)
 
 
 # download kernel files from GitHub
@@ -55,24 +55,24 @@ def download_kernel() -> None:
             case "mainline":
                 print_status("Downloading mainline kernel")
                 url = "https://github.com/eupnea-linux/mainline-kernel/releases/latest/download/"
-                urlretrieve(f"{url}bzImage-stable", filename="/tmp/eupnea-update/bzImage")
-                urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
-                urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-stable", filename="/tmp/kernel-update/bzImage")
+                urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
             case "alt":
                 print_status("Downloading alt kernel")
-                urlretrieve(f"{url}bzImage-alt", filename="/tmp/eupnea-update/bzImage")
-                urlretrieve(f"{url}modules-alt.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
-                urlretrieve(f"{url}headers-alt.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-alt", filename="/tmp/kernel-update/bzImage")
+                urlretrieve(f"{url}modules-alt.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-alt.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
             case "exp":
                 print_status("Downloading experimental 5.15 kernel")
-                urlretrieve(f"{url}bzImage-exp", filename="/tmp/eupnea-update/bzImage")
-                urlretrieve(f"{url}modules-exp.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
-                urlretrieve(f"{url}headers-exp.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-exp", filename="/tmp/kernel-update/bzImage")
+                urlretrieve(f"{url}modules-exp.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-exp.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
             case "stable":
                 print_status("Downloading stable 5.10 kernel")
-                urlretrieve(f"{url}bzImage", filename="/tmp/eupnea-update/bzImage")
-                urlretrieve(f"{url}modules.tar.xz", filename="/tmp/eupnea-update/modules.tar.xz")
-                urlretrieve(f"{url}headers.tar.xz", filename="/tmp/eupnea-update/headers.tar.xz")
+                urlretrieve(f"{url}bzImage", filename="/tmp/kernel-update/bzImage")
+                urlretrieve(f"{url}modules.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
+                urlretrieve(f"{url}headers.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
     except URLError:
         print_error("Failed to reach github. Check your internet connection and try again or use local files with -l")
         exit(1)
@@ -89,7 +89,7 @@ def flash_kernel() -> None:
     print_status("Extracting kernel modules")
     rmdir("/lib/modules")  # remove all old modules
     mkdir("/lib/modules")
-    bash(f"tar xpf /tmp/eupnea-update/modules.tar.xz -C /lib/modules/ --checkpoint=.10000")
+    bash(f"tar xpf /tmp/kernel-update/modules.tar.xz -C /lib/modules/ --checkpoint=.10000")
     print("")  # break line after tar
 
     # Extract kernel headers
@@ -97,7 +97,7 @@ def flash_kernel() -> None:
     dir_kernel_version = bash(f"ls /lib/modules/").strip()  # get modules dir name
     rmdir(f"/usr/src/linux-headers-{dir_kernel_version}", keep_dir=False)  # remove old headers
     mkdir(f"/usr/src/linux-headers-{dir_kernel_version}")
-    bash(f"tar xpf /tmp/eupnea-update/headers.tar.xz -C /usr/src/linux-headers-{dir_kernel_version}/ "
+    bash(f"tar xpf /tmp/kernel-update/headers.tar.xz -C /usr/src/linux-headers-{dir_kernel_version}/ "
          f"--checkpoint=.10000")
     print("")  # break line after tar
     bash(f"ln -s /usr/src/linux-headers-{dir_kernel_version}/ /lib/modules/{dir_kernel_version}/build")
@@ -107,14 +107,14 @@ def flash_kernel() -> None:
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock"
          + " --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader kernel.flags" +
-         " --config kernel.flags --vmlinuz /tmp/eupnea-update/bzImage --pack /tmp/eupnea-update/bzImage.signed")
+         " --config kernel.flags --vmlinuz /tmp/kernel-update/bzImage --pack /tmp/kernel-update/bzImage.signed")
 
     print_status("Flashing kernel")
-    bash(f"dd if=/tmp/eupnea-update/bzImage.signed of={device}1")
+    bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}1")
 
 
 if __name__ == "__main__":
-    if os.geteuid() == 0 and not path_exists("/tmp/.eupnea_root_ok"):
+    if os.geteuid() == 0 and not path_exists("/tmp/.root_ok"):
         print_error("Please start the script as non-root/without sudo")
         exit(1)
 
@@ -126,13 +126,13 @@ if __name__ == "__main__":
     # Restart script as root
     if not os.geteuid() == 0:
         # create empty file to confirm script was started as non-root
-        with open("/tmp/.eupnea_root_ok", "w") as file:
+        with open("/tmp/.root_ok", "w") as file:
             file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
     # delete file to confirm script was started as root
-    rmfile("/tmp/.eupnea_root_ok")
+    rmfile("/tmp/.root_ok")
 
     if args.stable:
         print_warning("Using stable kernel")
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     # If user hasn't passed a kernel type cli option
     if not (args.stable or args.alt or args.exp or args.mainline):
-        # read kernel version from eupnea settings file
+        # read kernel version from settings file
         with open("/etc/eupnea.json", "r") as file:
             selected_kernel_type = json.load(file)["kernel_type"]
             distro_name = json.load(file)["distro"]
@@ -175,10 +175,10 @@ if __name__ == "__main__":
             kernel_path = f"{args.local_path}/"
         else:
             kernel_path = args.local_path
-        print_status("Copying local files to /tmp/eupnea-update")
-        cpfile(f"{kernel_path}bzImage", "/tmp/eupnea-update/bzImage")
-        cpfile(f"{kernel_path}modules.tar.xz", "/tmp/eupnea-update/modules.tar.xz")
-        cpfile(f"{kernel_path}headers.tar.xz", "/tmp/eupnea-update/headers.tar.xz")
+        print_status("Copying local files to /tmp/kernel-update")
+        cpfile(f"{kernel_path}bzImage", "/tmp/kernel-update/bzImage")
+        cpfile(f"{kernel_path}modules.tar.xz", "/tmp/kernel-update/modules.tar.xz")
+        cpfile(f"{kernel_path}headers.tar.xz", "/tmp/kernel-update/headers.tar.xz")
 
     flash_kernel()
     print_header("Kernel update complete! ")

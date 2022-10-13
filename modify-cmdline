@@ -28,7 +28,7 @@ def process_args():
 
 
 if __name__ == "__main__":
-    if os.geteuid() == 0 and not path_exists("/tmp/.eupnea_root_ok"):
+    if os.geteuid() == 0 and not path_exists("/tmp/.root_ok"):
         print_error("Please start the script as non-root/without sudo")
         exit(1)
 
@@ -45,30 +45,23 @@ if __name__ == "__main__":
     # Restart script as root
     if not os.geteuid() == 0:
         # create empty file to confirm script was started as non-root
-        with open("/tmp/.eupnea_root_ok", "w") as file:
+        with open("/tmp/.root_ok", "w") as file:
             file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
     # delete file to confirm script was started as root
-    rmfile("/tmp/.eupnea_root_ok")
+    rmfile("/tmp/.root_ok")
 
     print_status("Reading partition table")
     partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
     partitions = partitions[:len(partitions) - 1]  # get device "name"
     if args.reset:
         print_status("Resetting to default command line")
-        print_status("Downloading default command line from github")
-        try:
-            temp_cmdline = urlopen(
-                "https://raw.githubusercontent.com/eupnea-linux/eupnea/main/configs/kernel.flags").read().decode(
-                "utf-8")
-        except URLError:
-            print_warning("Failed to reach github. Falling back to hardcoded default cmdline")
-            temp_cmdline = "console=tty1 root=PARTUUID=${USB_ROOTFS} i915.modeset=1 rootwait rw fbcon=logo-pos:" \
-                           "center,logo-count:1 loglevel=0 quiet splash"
+        temp_cmdline = "console=tty1 root=PARTUUID=insert_partuuid i915.modeset=1 rootwait rw fbcon=logo-pos:center," \
+                       "logo-count:1 quiet loglevel=3 vt.global_cursor_default=0 splash"
         rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}2")  # get partuuid of rootfs
-        new_cmdline = temp_cmdline.replace("${USB_ROOTFS}", rootfs_partuuid)  # replace PARTUUID in default cmdline
+        new_cmdline = temp_cmdline.replace("insert_partuuid", rootfs_partuuid)  # replace PARTUUID in default cmdline
     else:
         if args.cmdline is None:
             print_error("No cmdline provided. Use --help for help")

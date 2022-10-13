@@ -51,7 +51,7 @@ def partition_and_flash():
         pass
 
     # ask user for final confirmation
-    input("\033[92m" + "Are you absolutely sure you want to wipe your internal drive and install Eupnea to it? Enter"
+    input("\033[92m" + "Are you absolutely sure you want to wipe your internal drive and install Depthboot to it? Enter"
                        " to continue or Ctrl+C to abort" + "\033[0m")
 
     # remove pre-existing partition table from internal storage
@@ -101,31 +101,30 @@ def partition_and_flash():
 # Force internal to resize on first boot
 def post_copy() -> None:
     # Mount internal rootfs
-    mkdir("/mnt/eupnea-internal")
-    bash(f"mount {internal_name}p2 /mnt/eupnea-internal")
+    mkdir("/mnt/depthboot-internal")
+    bash(f"mount {internal_name}p2 /mnt/depthboot-internal")
 
-    # set build type to image in eupnea settings
-    with open("/mnt/eupnea-internal/etc/eupnea.json", "r") as settings_file:
+    # set build type to image in depthboot settings
+    with open("/mnt/depthboot-internal/etc/eupnea.json", "r") as settings_file:
         settings = json.load(settings_file)
-    settings["eupnea_install_type"] = "internal"
-    with open("/mnt/eupnea-internal/etc/eupnea.json", "w") as settings_file:
+    settings["install_type"] = "internal"
+    with open("/mnt/depthboot-internal/etc/eupnea.json", "w") as settings_file:
         json.dump(settings, settings_file)
 
     # add postconfig service hook
     # Add postinstall service
     print_status("Adding postinstall service")
-    cpfile("/etc/postinstall.service",
-           "/mnt/eupnea-internal/etc/systemd/system/postinstall.service")
+    cpfile("/etc/postinstall.service", "/mnt/depthboot-internal/etc/systemd/system/postinstall.service")
     chroot("systemctl enable postinstall.service")
 
 
 # chroot command
 def chroot(command: str) -> str:
-    return bash(f'chroot /mnt/eupnea-internal /bin/sh -c "{command}"')
+    return bash(f'chroot /mnt/depthboot-internal /bin/sh -c "{command}"')
 
 
 if __name__ == "__main__":
-    if os.geteuid() == 0 and not path_exists("/tmp/.eupnea_root_ok"):
+    if os.geteuid() == 0 and not path_exists("/tmp/.root_ok"):
         print_error("Please start the script as non-root/without sudo")
         exit(1)
 
@@ -137,13 +136,13 @@ if __name__ == "__main__":
     # Restart script as root
     if not os.geteuid() == 0:
         # create empty file to confirm script was started as non-root
-        with open("/tmp/.eupnea_root_ok", "w") as file:
+        with open("/tmp/.root_ok", "w") as file:
             file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
     # delete file to confirm script was started as root
-    rmfile("/tmp/.eupnea_root_ok")
+    rmfile("/tmp/.root_ok")
 
     if args.verbose:
         print_warning("Verbosity increased")
@@ -192,5 +191,5 @@ if __name__ == "__main__":
 
     partition_and_flash()
     post_copy()
-    print_header("Eupnea has been installed to internal storage successfully")
-    print_header("You can now boot Eupnea from internal storage")
+    print_header("Install successful")
+    print_header("You can now boot Depthboot from internal storage")

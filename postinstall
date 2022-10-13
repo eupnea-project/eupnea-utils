@@ -14,7 +14,7 @@ if __name__ == "__main__":
     set_verbose(True)  # always run verbose
 
     with open("/etc/eupnea.json", "r") as file:
-        install_type = json.load(file)["eupnea_install_type"]
+        install_type = json.load(file)["install_type"]
 
     # Expand root partition to whole drive
     # read root partition mount
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             # TODO: Add multitouch support
 
             # copy systemd file from config
-            cpfile("/usr/local/eupnea-configs/device-specific/sona_laser/touchscreen-fix.service",
+            cpfile("/etc/eupnea/device-specific/sona_laser/touchscreen-fix.service",
                    "/etc/systemd/system/touchscreen-fix.service")
             # enable service
             bash("systemctl enable touchscreen-fix.service")
@@ -48,16 +48,16 @@ if __name__ == "__main__":
             # Copy ucm config for amd audio
             mkdir("/usr/share/alsa/ucm2/AMD/acp3xalc5682m98")
             # cp ucm configs
-            cpfile("/usr/local/eupnea-configs/device-specific/amd-ucm/HiFi.conf",
+            cpfile("/etc/eupnea/device-specific/amd-ucm/HiFi.conf",
                    "/usr/share/alsa/ucm2/AMD/acp3xalc5682m98/HiFi.conf")
-            cpfile("/usr/local/eupnea-configs/device-specific/amd-ucm/acp3xalc5682m98.conf",
+            cpfile("/etc/eupnea/device-specific/amd-ucm/acp3xalc5682m98.conf",
                    "/usr/share/alsa/ucm2/AMD/acp3xalc5682m98/acp3xalc5682m98.conf")
             # create conf.d symlink
             mkdir("/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98")
             bash("ln -s /usr/share/alsa/ucm2/AMD/acp3xalc5682m98/acp3xalc5682m98.conf "
                  "/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98/acp3xalc5682m98.conf")
 
-    # delete systemd service
+    # delete postinstall systemd service
     bash("systemctl disable postinstall.service")
     cpfile("/etc/systemd/system/postinstall.service", "/etc/systemd/system/postinstall.service.disabled")
     rmfile("/etc/systemd/system/postinstall.service")
