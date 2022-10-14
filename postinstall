@@ -5,6 +5,33 @@ import sys
 import json
 from functions import *
 
+
+# Expand root partition to whole drive
+def expand_rootfs() -> None:
+    if install_type == "image" or install_type == "internal":  # do not resize on direct installs
+        # read root partition mount
+        root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        root_part = root_part[:-1]  # get device "name"
+        if install_type == "internal":
+            root_part = root_part[:-1]  # remove "p" from device name
+
+        bash(f"growpart {root_part} 2")  # grow root partition
+        bash(f"partprobe {root_part}")  # reload partition table
+        if install_type == "image":
+            bash(f"resize2fs {root_part}2")  # expand root partition
+        elif install_type == "internal":
+            bash(f"resize2fs {root_part}p2")  # expand root partition
+
+
+# This only pinns browser and software manager to the dock and removes mounted drives from it. NOTHING ELSE IS MODIFIED
+def customize_gnome() -> None:
+    print_status("Customizing Gnome")
+    bash('dconf write /org/gnome/shell/favorite-apps \"[\'org.gnome.Epiphany.desktop\', \'org.gnome.Software'
+         '.desktop\', \'org.gnome.Nautilus.desktop\', \'yelp.desktop\']\"')
+    # remove internal mounts as there is about 5 of them
+    bash("dconf write /org/gnome/shell/extensions/dash-to-dock/show-mounts false")
+
+
 if __name__ == "__main__":
     # Elevate script to root
     if not os.geteuid() == 0:
@@ -16,20 +43,8 @@ if __name__ == "__main__":
     with open("/etc/eupnea.json", "r") as file:
         install_type = json.load(file)["install_type"]
 
-    # Expand root partition to whole drive
-    # read root partition mount
-    root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
-    root_part = root_part[:-1]  # get device "name"
-    if install_type == "internal":
-        root_part = root_part[:-1]  # remove "p" from device name
-
-    if install_type == "image" or install_type == "internal":  # do not resize on direct installs
-        bash(f"growpart {root_part} 2")  # grow root partition
-        bash(f"partprobe {root_part}")  # reload partition table
-        if install_type == "image":
-            bash(f"resize2fs {root_part}2")  # expand root partition
-        elif install_type == "internal":
-            bash(f"resize2fs {root_part}p2")  # expand root partition
+    expand_rootfs()
+    customize_gnome()
 
     # Device specific things:
     match bash("sudo dmidecode --string system-product-name").lower():
