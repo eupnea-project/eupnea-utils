@@ -112,9 +112,8 @@ def post_copy() -> None:
         json.dump(settings, settings_file)
 
     # add postconfig service hook
-    # Add postinstall service
     print_status("Adding postinstall service")
-    cpfile("/etc/postinstall.service", "/mnt/depthboot-internal/etc/systemd/system/postinstall.service")
+    cpfile("/etc/eupnea/postinstall.service", "/mnt/depthboot-internal/etc/systemd/system/postinstall.service")
     chroot("systemctl enable postinstall.service")
 
 
