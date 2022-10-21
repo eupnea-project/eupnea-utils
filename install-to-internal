@@ -106,7 +106,7 @@ def partition_and_flash():
     ]
     exclude=""
     for file in exclude_dirs:
-        exclude+="--exclude="+file+" "
+        exclude=exclude +"--exclude="+file+" "
     print(f'rsync -a {exclude} / /mnt/internal')
     bash(f'rsync -a {exclude} / /mnt/internal')
 
