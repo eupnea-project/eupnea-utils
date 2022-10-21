@@ -110,6 +110,7 @@ def partition_and_flash():
         exclude=exclude +"--exclude="+file+" "
     print(f'rsync -a {exclude} / /mnt/internal')
     bash(f'rsync -a {exclude} / /mnt/internal')
+    bash('umount /mnt/internal')
 
 # Force internal to resize on first boot
 def post_copy() -> None:
