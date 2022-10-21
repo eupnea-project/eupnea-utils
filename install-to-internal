@@ -100,10 +100,10 @@ def partition_and_flash():
     exclude_dirs=[
         "/mnt/internal", # prevent recursivity issues
         "/tmp",
-        "/dev",
-        "/sys",
-        "/proc",
-        "/run"
+        "/dev"#,
+        #"/sys",
+        #"/proc",
+        #"/run"
     ]
     exclude=""
     for file in exclude_dirs:
