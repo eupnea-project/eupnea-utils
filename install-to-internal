@@ -102,7 +102,8 @@ def partition_and_flash():
         "/tmp",
         "/dev",
         "/sys",
-        "/proc"
+        "/proc",
+        "/run"
     ]
     exclude=""
     for file in exclude_dirs:
