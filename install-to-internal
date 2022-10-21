@@ -98,10 +98,10 @@ def partition_and_flash():
     mkdir("/mnt/internal")
     bash(f"sudo mount {internal_name}p2 /mnt/internal")
     exclude_dirs=[
-        "/mnt/internal" # prevent recursivity issues
-        "/tmp"
-        "/dev"
-        "/sys"
+        "/mnt/internal", # prevent recursivity issues
+        "/tmp",
+        "/dev",
+        "/sys",
         "/proc"
     ]
     exclude=""
