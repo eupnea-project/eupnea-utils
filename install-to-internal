@@ -95,8 +95,10 @@ def partition_and_flash():
     bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p2")  # 2>/dev/null is to supress yes broken pipe warning
 
     print_status("Copying rootfs to internal storage")
-    bash(f'sudo dd if={src_device}2 of={internal_name}p2 status=progress')
-
+    mkdir("/mnt/internal")
+    bash(f"sudo mount {internal_name}p2 /mnt/internal")
+    bash(f'rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal')
+    bash('umount /mnt/internal')
 
 # Force internal to resize on first boot
 def post_copy() -> None:
