@@ -97,18 +97,7 @@ def partition_and_flash():
     print_status("Copying rootfs to internal storage")
     mkdir("/mnt/internal")
     bash(f"sudo mount {internal_name}p2 /mnt/internal")
-    exclude_dirs=[
-        "/mnt/internal", # prevent recursivity issues
-        "/tmp",
-        "/dev",
-        "/sys",
-        "/proc",
-        "/run"
-    ]
-    exclude=""
-    for file in exclude_dirs:
-        exclude=exclude +"--exclude="+file+" "
-    bash(f'rsync -aHAXErp --progress {exclude} / /mnt/internal')
+    bash(f'rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal')
     bash('umount /mnt/internal')
 
 # Force internal to resize on first boot
