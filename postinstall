@@ -36,22 +36,10 @@ def customize_gnome() -> None:
     '''
 
 
-if __name__ == "__main__":
-    # Elevate script to root
-    if not os.geteuid() == 0:
-        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
-        os.execlpe('sudo', *sudo_args)
-
-    set_verbose(True)  # always run verbose
-
-    with open("/etc/eupnea.json", "r") as file:
-        install_type = json.load(file)["install_type"]
-
-    expand_rootfs()
-    customize_gnome()
-
-    # Device specific things:
-    match bash("sudo dmidecode --string system-product-name").lower():
+def device_fixes() -> None:
+    with open("/sys/devices/virtual/dmi/id/product_name", "r") as file:
+        product_name = file.read().strip().lower()
+    match product_name:
         case "sona" | "laser":
             # Apply fix for display driver
             # TODO: Add multitouch support
@@ -75,6 +63,22 @@ if __name__ == "__main__":
             mkdir("/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98")
             bash("ln -s /usr/share/alsa/ucm2/AMD/acp3xalc5682m98/acp3xalc5682m98.conf "
                  "/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98/acp3xalc5682m98.conf")
+
+
+if __name__ == "__main__":
+    # Elevate script to root
+    if not os.geteuid() == 0:
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
+    set_verbose(True)  # always run verbose
+
+    with open("/etc/eupnea.json", "r") as file:
+        install_type = json.load(file)["install_type"]
+
+    expand_rootfs()
+    # customize_gnome()
+    device_fixes()
 
     # delete postinstall systemd service
     bash("systemctl disable postinstall.service")
