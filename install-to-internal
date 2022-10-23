@@ -4,8 +4,6 @@ import os
 import sys
 import json
 import argparse
-from urllib.error import URLError
-from urllib.request import urlretrieve, urlopen
 
 from functions import *
 
@@ -97,8 +95,10 @@ def partition_and_flash():
     print_status("Copying rootfs to internal storage")
     mkdir("/mnt/internal")
     bash(f"sudo mount {internal_name}p2 /mnt/internal")
-    bash(f'rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal')
+    bash(
+        f'rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal')
     bash('umount /mnt/internal')
+
 
 # Force internal to resize on first boot
 def post_copy() -> None:
