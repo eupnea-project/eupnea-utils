@@ -70,9 +70,9 @@ def download_kernel() -> None:
                 urlretrieve(f"{url}headers-exp.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
             case "stable":
                 print_status("Downloading stable 5.10 kernel")
-                urlretrieve(f"{url}bzImage", filename="/tmp/kernel-update/bzImage")
-                urlretrieve(f"{url}modules.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
-                urlretrieve(f"{url}headers.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
+                urlretrieve(f"{url}bzImage-stable", filename="/tmp/kernel-update/bzImage")
+                urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
+                urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
     except URLError:
         print_error("Failed to reach github. Check your internet connection and try again or use local files with -l")
         exit(1)
