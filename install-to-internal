@@ -21,21 +21,20 @@ def prepare_host() -> None:
 
     rmfile("kernel.flags")
 
-    # Install parted
-    if not path_exists("/usr/sbin/parted"):
-        print_status("Installing parted")
+    # Install parted and rsync
+    if not path_exists("/usr/sbin/parted") or not path_exists("/bin/rsync"):
+        print_status("Installing dependencies")
         if path_exists("/usr/bin/apt"):  # Ubuntu + debian
-            bash("apt-get install parted -y")
+            bash("apt-get install parted rsync -y")
         elif path_exists("/usr/bin/pacman"):  # Arch
             # install parted
-            bash("pacman -S parted --noconfirm")
-
+            bash("pacman -S --noconfirm parted rsync")
         elif path_exists("/usr/bin/dnf"):  # Fedora
-            bash("dnf install parted --assumeyes")  # cgpt is included in vboot-utils on fedora
+            bash("dnf install -y parted rsync")  # cgpt is included in vboot-utils on fedora
         elif path_exists("/usr/bin/zypper"):  # openSUSE
-            bash("zypper --non-interactive install parted")
+            bash("zypper --non-interactive install parted rsync")
         else:
-            print_warning("Parted not found, please install it using your distros package manager")
+            print_warning("Parted/rsync not found, please install them using your distros package manager")
             exit(1)
 
 
