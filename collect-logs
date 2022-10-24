@@ -32,25 +32,29 @@ def collect_audio_logs() -> None:
                          "--with-devices --with-packages"))
 
     print_status("Collecting pulseaudio logs")
-    # get startup pulseaudio logs
-    with open("/tmp/logs-eupnea/pulseaudio_startup.log", "w") as file:
-        file.write(bash("systemctl --user status pulseaudio*"))
-    # manually start pulseaudio and get verbose logs
-    bash("systemctl --user stop pulseaudio*")
-    Thread(target=run_pulseaudio, daemon=True).start()
-    sleep(10)
-    bash("killall pulseaudio")
-    # restart pulseaudio
-    bash("systemctl --user start pulseaudio")
+    # Check if pulseaudio is installed
+    if path_exists("/usr/bin/pulseaudio"):
+        # get startup pulseaudio logs
+        with open("/tmp/logs-eupnea/pulseaudio_startup.log", "w") as file:
+            file.write(bash("systemctl --user status pulseaudio*"))
+        # manually start pulseaudio and get verbose logs
+        bash("systemctl --user stop pulseaudio*")
+        Thread(target=run_pulseaudio, daemon=True).start()
+        sleep(10)
+        bash("killall pulseaudio")
+        # restart pulseaudio
+        bash("systemctl --user start pulseaudio")
+    else:
+        print_error("Pulseaudio is not installed, skipping")
 
     print_status("Collecting pipewire logs")
-    try:
+    if path_exists("/usr/bin/pipewire"):
         with open("/tmp/logs-eupnea/pipewire.log", "w") as file:
             file.write(bash("systemctl --user status pipewire*"))
         with open("/tmp/logs-eupnea/wireplumber.log", "w") as file:
             file.write(bash("systemctl --user status wireplumber*"))
-    except subprocess.CalledProcessError:
-        print_error("pipewire is not installed, skipping")
+    else:
+        print_error("Pipewire is not installed, skipping")
 
 
 def system_info() -> None:
