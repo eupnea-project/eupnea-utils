@@ -60,7 +60,7 @@ def collect_audio_logs() -> None:
 def system_info() -> None:
     print_status("Collecting dmi")
     mkdir("/tmp/logs-eupnea/dmi")
-    cpdir("/sys/class/dmi/id", "/tmp/logs-eupnea/dmi")
+    cpdir("/sys/class/dmi", "/tmp/logs-eupnea/dmi")
 
     print_status("Collecting pci devices")
     with open("/tmp/logs-eupnea/lspci.log", "w") as file:
