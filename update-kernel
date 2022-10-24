@@ -5,7 +5,7 @@ import sys
 import json
 import argparse
 from urllib.error import URLError
-from urllib.request import urlretrieve, urlopen
+from urllib.request import urlretrieve
 
 from functions import *
 
