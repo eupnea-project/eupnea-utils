@@ -83,17 +83,15 @@ if __name__ == "__main__":
         print_error("Please start the script as non-root/without sudo")
         exit(1)
 
-    # args = process_args()
-    set_verbose(True)
-    rmdir("/tmp/logs-eupnea")
-    mkdir("/tmp/logs-eupnea", create_parents=True)
-
-    # pa logs need to be collected as user
-    print_header("Collecting audio related logs")
-    collect_audio_logs()
-
     # Restart script as root
     if not os.geteuid() == 0:
+        # pa logs need to be collected as non-root user
+        set_verbose(True)
+        rmdir("/tmp/logs-eupnea")
+        mkdir("/tmp/logs-eupnea", create_parents=True)
+        print_header("Collecting audio related logs")
+        collect_audio_logs()
+
         # save username
         with open("/tmp/username", "w") as file:
             file.write(bash("whoami").strip())  # get non root username. os.getlogin() seems to fail in chroots
@@ -104,6 +102,8 @@ if __name__ == "__main__":
     with open("/tmp/username", "r") as file:
         user_id = file.read()
     rmfile("/tmp/username")
+
+    set_verbose(True)
 
     print_header("Collecting hardware related logs")
     system_info()
