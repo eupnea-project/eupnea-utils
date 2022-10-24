@@ -79,7 +79,7 @@ if __name__ == "__main__":
         exit(1)
 
     # args = process_args()
-
+    set_verbose(True)
     rmdir("/tmp/logs-eupnea")
     mkdir("/tmp/logs-eupnea", create_parents=True)
 
