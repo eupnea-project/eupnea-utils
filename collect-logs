@@ -91,7 +91,10 @@ if __name__ == "__main__":
     if not os.geteuid() == 0:
         # pa logs need to be collected as non-root user
         set_verbose(True)
-        rmdir("/tmp/logs-eupnea")
+        try:
+            rmdir("/tmp/logs-eupnea")
+        except subprocess.CalledProcessError:  # just in case, the script should auto-remove those files on exit
+            bash("sudo rm -rf /tmp/logs-eupnea")
         mkdir("/tmp/logs-eupnea", create_parents=True)
         print_header("Collecting audio related logs")
         collect_audio_logs()
@@ -116,3 +119,5 @@ if __name__ == "__main__":
     os.chdir("/tmp/logs-eupnea")
     bash("tar -czf ../eupnea-logs.tar.gz ./")
     cpfile("/tmp/eupnea-logs.tar.gz", f"/home/{user_id}/Downloads/eupnea-logs.tar.gz")
+    # delete old tmp files
+    rmdir("/tmp/logs-eupnea")
