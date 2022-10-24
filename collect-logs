@@ -23,8 +23,13 @@ def collect_audio_logs() -> None:
 
     print_status("Running alsa-info")
     with open("/tmp/logs-eupnea/alsa-info.log", "w") as f:
-        f.write(bash("LANG=C alsa-info --stdout --with-aplay --with-amixer --with-alsactl --with-configs --with-devices"
-                     " --with-packages"))
+        try:
+            f.write(bash("LANG=C alsa-info --stdout --with-aplay --with-amixer --with-alsactl --with-configs "
+                         "--with-devices --with-packages"))
+        except subprocess.CalledProcessError:
+            print_warning("Trying alternative alsa-info name")
+            f.write(bash("LANG=C alsa-info.sh --stdout --with-aplay --with-amixer --with-alsactl --with-configs "
+                         "--with-devices --with-packages"))
 
     print_status("Collecting pulseaudio logs")
     # get startup pulseaudio logs
