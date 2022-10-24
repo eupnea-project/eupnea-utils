@@ -161,8 +161,8 @@ if __name__ == "__main__":
     if not (args.stable or args.alt or args.exp or args.mainline):
         # read kernel version from settings file
         with open("/etc/eupnea.json", "r") as file:
-            selected_kernel_type = json.load(file)["kernel_type"]
-            distro_name = json.load(file)["distro"]
+            stored_settings = json.load(file)
+        selected_kernel_type = stored_settings["kernel_type"]
     print_status(f"Updating kernel type: {selected_kernel_type}")
 
     # read root partition mount
@@ -184,6 +184,14 @@ if __name__ == "__main__":
         cpfile(f"{kernel_path}headers.tar.xz", "/tmp/kernel-update/headers.tar.xz")
 
     flash_kernel()
+
+    # Update settings file
+    print_status("Updating settings file")
+    updated_settings = stored_settings
+    updated_settings["kernel_type"] = selected_kernel_type
+    with open("/etc/eupnea.json", "w") as file:
+        file.write(updated_settings)
+
     print_header("Kernel update complete! ")
     print_warning("REBOOTING IN 5 SECONDS... Press Ctrl+C to cancel")
     sleep(5)
