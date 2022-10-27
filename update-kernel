@@ -186,7 +186,7 @@ if __name__ == "__main__":
     updated_settings = stored_settings
     updated_settings["kernel_type"] = selected_kernel_type
     with open("/etc/eupnea.json", "w") as file:
-        file.write(updated_settings)
+        json.dump(updated_settings, file)
 
     print_header("Kernel update complete! Please reboot to use the new kernel")
     input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
