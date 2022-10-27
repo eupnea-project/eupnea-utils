@@ -32,7 +32,7 @@ def process_args():
 
 
 def check_version() -> None:
-    if args.dev:
+    if args.dev_build:
         return  # dev versions have no versioning
     if not stored_settings["kernel_type"] == selected_kernel_type:
         return
