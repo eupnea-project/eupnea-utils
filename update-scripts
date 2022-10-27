@@ -25,8 +25,6 @@ if __name__ == "__main__":
 
     # Restart script as root
     if not os.geteuid() == 0:
-        # install kernel packages before elevating to root, as makepkg needs to be run as non-root
-        install_kernel_packages()
         # create empty file to confirm script was started as non-root
         with open("/tmp/.root_ok", "w") as file:
             file.write("")
