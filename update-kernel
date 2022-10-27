@@ -192,7 +192,6 @@ if __name__ == "__main__":
     with open("/etc/eupnea.json", "w") as file:
         file.write(updated_settings)
 
-    print_header("Kernel update complete! ")
-    print_warning("REBOOTING IN 5 SECONDS... Press Ctrl+C to cancel")
-    sleep(5)
+    print_header("Kernel update complete! Please reboot to use the new kernel")
+    input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
     bash("reboot")
