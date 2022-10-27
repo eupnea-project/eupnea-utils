@@ -147,22 +147,18 @@ if __name__ == "__main__":
     if args.mainline:
         print_warning("Using mainline kernel")
         selected_kernel_type = "mainline"
-
-        # temporary
-        print_error("Mainline kernel is currently broken")
-        exit(1)
     if args.local_path:
         print_warning("Using local path")
     if args.verbose:
         print_warning("Verbosity increased")
         set_verbose(args.verbose)  # enable verbose output in functions.py
 
+    # read settings file
+    with open("/etc/eupnea.json", "r") as file:
+        stored_settings = json.load(file)
     # If user hasn't passed a kernel type cli option
     if not (args.stable or args.alt or args.exp or args.mainline):
-        # read kernel version from settings file
-        with open("/etc/eupnea.json", "r") as file:
-            stored_settings = json.load(file)
-        selected_kernel_type = stored_settings["kernel_type"]
+        selected_kernel_type = stored_settings["kernel_type"]  # read kernel version from settings file
     print_status(f"Updating kernel type: {selected_kernel_type}")
 
     # read root partition mount
