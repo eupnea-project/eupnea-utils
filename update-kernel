@@ -5,7 +5,7 @@ import sys
 import json
 import argparse
 from urllib.error import URLError
-from urllib.request import urlretrieve
+from urllib.request import urlretrieve, urlopen
 
 from functions import *
 
@@ -15,10 +15,10 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--local-path', dest="local_path",
                         help="Local path for kernel files to use instead of downloading from github.")
-    parser.add_argument("--stable", action="store_true", dest="stable", default=False,
-                        help="Use stable kernel.")
     parser.add_argument("--dev", action="store_true", dest="dev_build", default=False,
                         help="Use kernels from latest dev build. May be unstable.")
+    parser.add_argument("--stable", action="store_true", dest="stable", default=False,
+                        help="Use stable kernel.")
     parser.add_argument("--alt", action="store_true", dest="alt", default=False,
                         help="Use alt kernel. Recommended for older devices.")
     parser.add_argument("--exp", action="store_true", dest="exp", default=False,
@@ -31,6 +31,26 @@ def process_args():
     return parser.parse_args()
 
 
+def check_version() -> None:
+    if args.dev:
+        return  # dev versions have no versioning
+    if not stored_settings["kernel_type"] == selected_kernel_type:
+        return
+    else:
+        # Check if dev version was selected
+        print_status("Checking for new kernel version")
+        if args.mainline or stored_settings["kernel_type"] == "mainline":
+            url = "https://api.github.com/repos/eupnea-linux/mainline-kernel/releases/latest"
+        else:
+            url = "https://api.github.com/repos/eupnea-linux/kernel/releases/latest"
+        data_json = json.loads(urlopen(url).read())
+        if data_json["tag_name"] == stored_settings["kernel_version"]:
+            print_status("Kernel is already up to date")
+            exit(0)
+        else:
+            return
+
+
 # Clean old depthboot files from /tmp
 def prepare_host() -> None:
     print_status("Preparing host system")
@@ -41,7 +61,7 @@ def prepare_host() -> None:
 
 
 # download kernel files from GitHub
-def download_kernel() -> None:
+def download_kernel() -> str:
     # select correct link
     if args.dev_build:
         url = "https://github.com/eupnea-linux/kernel/releases/download/dev-build/"
@@ -73,6 +93,13 @@ def download_kernel() -> None:
                 urlretrieve(f"{url}bzImage-stable", filename="/tmp/kernel-update/bzImage")
                 urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
                 urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
+
+        print_status("Getting kernel version")
+        if selected_kernel_type == "mainline":
+            url = "https://api.github.com/repos/eupnea-linux/mainline-kernel/releases/latest"
+        else:
+            url = "https://api.github.com/repos/eupnea-linux/kernel/releases/latest"
+        return json.loads(urlopen(url).read())["tag_name"]
     except URLError:
         print_error("Failed to reach github. Check your internet connection and try again or use local files with -l")
         exit(1)
@@ -156,9 +183,12 @@ if __name__ == "__main__":
     # read settings file
     with open("/etc/eupnea.json", "r") as file:
         stored_settings = json.load(file)
-    # If user hasn't passed a kernel type cli option
-    if not (args.stable or args.alt or args.exp or args.mainline):
+
+    if not (args.stable or args.alt or args.exp or args.mainline):  # If user didn't set a kernel type cli option
         selected_kernel_type = stored_settings["kernel_type"]  # read kernel version from settings file
+
+    check_version()
+
     print_status(f"Updating kernel type: {selected_kernel_type}")
 
     # read root partition mount
@@ -167,7 +197,7 @@ if __name__ == "__main__":
 
     prepare_host()
     if args.local_path is None:  # Download files from GitHub
-        download_kernel()
+        new_kernel_version = download_kernel()
     else:  # if local path is specified, copy files from it, instead of downloading from the internet
         # clean local path string
         if not args.local_path.endswith("/"):
@@ -178,6 +208,7 @@ if __name__ == "__main__":
         cpfile(f"{kernel_path}bzImage", "/tmp/kernel-update/bzImage")
         cpfile(f"{kernel_path}modules.tar.xz", "/tmp/kernel-update/modules.tar.xz")
         cpfile(f"{kernel_path}headers.tar.xz", "/tmp/kernel-update/headers.tar.xz")
+        new_kernel_version = "local"
 
     flash_kernel()
 
@@ -185,6 +216,11 @@ if __name__ == "__main__":
     print_status("Updating settings file")
     updated_settings = stored_settings
     updated_settings["kernel_type"] = selected_kernel_type
+    updated_settings["kernel_version"] = new_kernel_version
+    if args.dev_build:
+        updated_settings["dev_build"] = True
+    else:
+        updated_settings["dev_build"] = False
     with open("/etc/eupnea.json", "w") as file:
         json.dump(updated_settings, file)
 
