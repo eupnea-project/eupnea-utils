@@ -212,6 +212,11 @@ if __name__ == "__main__":
 
     flash_kernel()
 
+    # if on Fedora, the modules need to be relabeled, otherwise SELinux will not allow loading them
+    if stored_settings["distro_name"] == "fedora":
+        print_status("Relabeling modules")
+        bash("fixfiles restore /lib/modules")
+
     # Update settings file
     print_status("Updating settings file")
     updated_settings = stored_settings
@@ -223,11 +228,6 @@ if __name__ == "__main__":
         updated_settings["dev_build"] = False
     with open("/etc/eupnea.json", "w") as file:
         json.dump(updated_settings, file)
-
-    # if on Fedora, the modules need to be relabeled, otherwise SELinux will not allow loading them
-    if stored_settings["distro_name"] == "fedora":
-        print_status("Relabeling modules")
-        bash("fixfiles restore /lib/modules")
 
     print_header("Kernel update complete! Please reboot to use the new kernel")
     input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
