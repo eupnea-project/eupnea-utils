@@ -225,7 +225,7 @@ if __name__ == "__main__":
         json.dump(updated_settings, file)
 
     # if on Fedora, the modules need to be relabeled, otherwise SELinux will not allow loading them
-    if stored_settings["distro"] == "fedora":
+    if stored_settings["distro_name"] == "fedora":
         print_status("Relabeling modules")
         bash("fixfiles restore /lib/modules")
 
