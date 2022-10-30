@@ -81,6 +81,14 @@ def system_info() -> None:
     with open("/tmp/logs-eupnea/journalctl.log", "w") as file:
         file.write(bash("LANG=C journalctl -b"))
 
+    print_status("Collecting firmware tree")
+    with open("/tmp/logs-eupnea/firmware-tree.log", "w") as file:
+        file.write(create_tree("/lib/firmware"))
+
+    print_status("Collecting ucm tree")
+    with open("/tmp/logs-eupnea/ucm2-tree.log", "w") as file:
+        file.write(create_tree("/usr/share/alsa/ucm2"))
+
     print_status("Collecting eupnea settings")
     cpfile("/etc/eupnea.json", "/tmp/logs-eupnea/eupnea-settings.log")
 
