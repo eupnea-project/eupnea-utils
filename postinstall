@@ -8,19 +8,18 @@ from functions import *
 
 # Expand root partition to whole drive
 def expand_rootfs() -> None:
-    if install_type == "image" or install_type == "internal":  # do not resize on direct installs
+    if install_type == "image":  # only resize on image installs
         # read root partition mount
         root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
         root_part = root_part[:-1]  # get device "name"
-        if install_type == "internal":
-            root_part = root_part[:-1]  # remove "p" from device name
-
-        bash(f"growpart {root_part} 2")  # grow root partition
-        bash(f"partprobe {root_part}")  # reload partition table
-        if install_type == "image":
-            bash(f"resize2fs {root_part}2")  # expand root partition
-        elif install_type == "internal":
+        if root_part[-1] == "p":  # internal drive / sd card has a "p" at the end
+            bash(f"growpart {root_part[:-1]} 2")  # grow root partition
+            bash(f"partprobe {root_part[:-1]}")  # reload partition table
             bash(f"resize2fs {root_part}p2")  # expand root partition
+        else:  # usb drive
+            bash(f"growpart {root_part} 2")  # grow root partition
+            bash(f"partprobe {root_part}")  # reload partition table
+            bash(f"resize2fs {root_part}2")  # expand root partition
 
 
 # This only pinns browser and software manager to the dock and removes mounted drives from it. NOTHING ELSE IS MODIFIED
