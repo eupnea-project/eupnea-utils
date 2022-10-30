@@ -60,8 +60,10 @@ def collect_audio_logs() -> None:
 def system_info() -> None:
     print_status("Collecting dmi")
     mkdir("/tmp/logs-eupnea/dmi")
-    cpdir("/sys/devices/virtual/dmi/id/", "/tmp/logs-eupnea/dmi")
-
+    try:
+        cpdir("/sys/devices/virtual/dmi/id/", "/tmp/logs-eupnea/dmi")
+    except subprocess.CalledProcessError:
+        print_warning("Couldnt collect all dmi logs")
     print_status("Collecting pci devices")
     with open("/tmp/logs-eupnea/lspci.log", "w") as file:
         file.write(bash("LANG=C lspci -v"))
