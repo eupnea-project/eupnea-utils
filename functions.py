@@ -21,7 +21,7 @@ def rmdir(rm_dir: str, keep_dir: bool = True) -> None:
                 else:
                     unlink_files(path_to_rm)
         except FileNotFoundError:
-            print(f"No such file or directory: {path_to_rm}, ignoring")
+            print(f"Couldn't remove non existent directory: {path_to_rm}, ignoring")
             pass
 
     # convert string to Path object
@@ -41,7 +41,7 @@ def rmdir(rm_dir: str, keep_dir: bool = True) -> None:
 
 # remove a single file
 def rmfile(file: str, force: bool = False) -> None:
-    if force:
+    if force:  # for symbolic links
         Path(file).unlink(missing_ok=True)
     file_as_path = Path(file)
     if file_as_path.exists():
