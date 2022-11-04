@@ -64,6 +64,18 @@ def device_fixes() -> None:
                  "/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98/acp3xalc5682m98.conf")
 
 
+def distro_fixes() -> None:
+    with open("/etc/eupnea.json", "r") as file:
+        eupnea_json = json.load(file)
+
+    match eupnea_json["distro_name"]:
+        case "fedora":
+            # Relabel files that couldn't be relabeled during install
+            bash("fixfiles relabel /lib/systemd/system-generators/systemd-gpt-auto-generator")
+        case _:
+            pass
+
+
 if __name__ == "__main__":
     # Elevate script to root
     if not os.geteuid() == 0:
