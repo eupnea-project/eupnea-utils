@@ -94,10 +94,10 @@ if __name__ == "__main__":
 
     set_verbose(True)  # always run verbose
 
-    set_hostname()
     expand_rootfs()
     # customize_gnome()
     device_fixes()
+    set_hostname()
 
     # delete postinstall systemd service
     bash("systemctl disable postinstall.service")
