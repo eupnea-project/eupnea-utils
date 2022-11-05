@@ -20,7 +20,20 @@ from functions import *
 
 def collect_audio_logs() -> None:
     def run_pulseaudio() -> None:
-        bash("LANG=C pulseaudio -vvvv --log-time=1 > /tmp/logs-eupnea/pulseaudio_verbose.log 2>&1")
+        try:
+            bash("LANG=C pulseaudio -vvvv --log-time=1 > /tmp/logs-eupnea/pulseaudio_verbose.log 2>&1")
+        except subprocess.CalledProcessError:
+            print_warning("Pulseaudio exited with an error")
+            with open("/tmp/logs-eupnea/pulseaudio_fail.log", "w") as file:
+                file.write(bash("systemctl --user status pulseaudio*"))
+
+    def run_pipewire() -> None:
+        try:
+            bash("LANG=C pipewire -vvvv > /tmp/logs-eupnea/pipewire_verbose.log 2>&1")
+        except subprocess.CalledProcessError:
+            print_warning("Pipewire exited with an error")
+            with open("/tmp/logs-eupnea/pipewire_fail.log", "w") as file:
+                file.write(bash("systemctl --user status pipewire*"))
 
     print_status("Running alsa-info")
     with open("/tmp/logs-eupnea/alsa-info.log", "w") as f:
@@ -44,18 +57,31 @@ def collect_audio_logs() -> None:
         sleep(10)
         bash("killall pulseaudio")
         # restart pulseaudio
-        bash("systemctl --user start pulseaudio")
+        try:
+            bash("systemctl --user start pulseaudio")
+        except subprocess.CalledProcessError:
+            pass
     else:
-        print_error("Pulseaudio is not installed, skipping")
+        print_warning("Pulseaudio is not installed, skipping")
 
     print_status("Collecting pipewire logs")
     if path_exists("/usr/bin/pipewire"):
-        with open("/tmp/logs-eupnea/pipewire.log", "w") as file:
+        with open("/tmp/logs-eupnea/pipewire_startup.log", "w") as file:
             file.write(bash("systemctl --user status pipewire*"))
-        with open("/tmp/logs-eupnea/wireplumber.log", "w") as file:
+        with open("/tmp/logs-eupnea/wireplumber_startup.log", "w") as file:
             file.write(bash("systemctl --user status wireplumber*"))
+        # manually start pipewire and get verbose logs
+        bash("systemctl --user stop pipewire*")
+        Thread(target=run_pipewire, daemon=True).start()
+        sleep(10)
+        bash("killall pipewire")
+        # restart pipewire
+        try:
+            bash("systemctl --user start pipewire")
+        except subprocess.CalledProcessError:
+            pass
     else:
-        print_error("Pipewire is not installed, skipping")
+        print_warning("Pipewire is not installed, skipping")
 
 
 def system_info() -> None:
