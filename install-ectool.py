@@ -32,6 +32,9 @@ if __name__ == "__main__":
     # delete file to confirm script was started as root
     rmfile("/tmp/.root_ok")
 
+    print_error("Not ready for use yet")
+    exit(1)
+
     # delete old scripts tmp dir
     rmdir("/tmp/eupnea-ectool")
 
