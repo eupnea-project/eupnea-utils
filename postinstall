@@ -8,6 +8,8 @@ from functions import *
 
 # Expand root partition to whole drive
 def expand_rootfs() -> None:
+    with open("/etc/eupnea.json", "r") as file:
+        install_type = json.load(file)["install_type"]
     if install_type == "image":  # only resize on image installs
         # read root partition mount
         root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
@@ -76,6 +78,14 @@ def distro_fixes() -> None:
             pass
 
 
+def set_hostname() -> None:
+    # Get the board name from dmi
+    with open("/sys/devices/virtual/dmi/id/product_name", "r") as dmi:
+        device_board = dmi.read().lower().strip()
+    # Set hostname
+    bash(f"hostname {device_board}")
+
+
 if __name__ == "__main__":
     # Elevate script to root
     if not os.geteuid() == 0:
@@ -84,9 +94,7 @@ if __name__ == "__main__":
 
     set_verbose(True)  # always run verbose
 
-    with open("/etc/eupnea.json", "r") as file:
-        install_type = json.load(file)["install_type"]
-
+    set_hostname()
     expand_rootfs()
     # customize_gnome()
     device_fixes()
