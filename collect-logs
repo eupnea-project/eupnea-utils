@@ -8,14 +8,14 @@ import time
 from functions import *
 
 
-# # parse arguments from the cli.
-# def process_args():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("-a", "--audio", action="store_true", dest="stable", default=False,
-#                         help="Collect audio related logs only")
-#     parser.add_argument("-h", "--hardware", action="store_true", dest="stable", default=False,
-#                         help="Collect hardware related logs only")
-#     return parser.parse_args()
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-a", "--audio", action="store_true", dest="audio_only", default=False,
+                        help="Collect audio related logs only")
+    parser.add_argument("-h", "--hardware-only", action="store_true", dest="hardware_only", default=False,
+                        help="Collect hardware related logs only")
+    return parser.parse_args()
 
 
 def collect_audio_logs() -> None:
@@ -84,7 +84,7 @@ def collect_audio_logs() -> None:
         print_warning("Pipewire is not installed, skipping")
 
 
-def system_info() -> None:
+def collect_system_logs() -> None:
     print_status("Collecting dmi")
     mkdir("/tmp/logs-eupnea/dmi")
     try:
@@ -124,6 +124,8 @@ if __name__ == "__main__":
         print_error("Please start the script as non-root/without sudo")
         exit(1)
 
+    args = process_args()
+
     # Restart script as root
     if not os.geteuid() == 0:
         # pa logs need to be collected as non-root user
@@ -133,8 +135,9 @@ if __name__ == "__main__":
         except subprocess.CalledProcessError:  # just in case, the script should auto-remove those files on exit
             bash("sudo rm -rf /tmp/logs-eupnea")
         mkdir("/tmp/logs-eupnea", create_parents=True)
-        print_header("Collecting audio related logs")
-        collect_audio_logs()
+        if not args.hardware_only:
+            print_header("Collecting audio related logs")
+            collect_audio_logs()
 
         # save username
         with open("/tmp/username", "w") as file:
@@ -149,8 +152,9 @@ if __name__ == "__main__":
 
     set_verbose(True)
 
-    print_header("Collecting hardware related logs")
-    system_info()
+    if not args.audio_only:
+        print_header("Collecting hardware related logs")
+        collect_system_logs()
 
     print_header("Packing logs")
     os.chdir("/tmp/logs-eupnea")
