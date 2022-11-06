@@ -13,7 +13,7 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-a", "--audio", action="store_true", dest="audio_only", default=False,
                         help="Collect audio related logs only")
-    parser.add_argument("-h", "--hardware-only", action="store_true", dest="hardware_only", default=False,
+    parser.add_argument("-d", "--hardware-only", action="store_true", dest="hardware_only", default=False,
                         help="Collect hardware related logs only")
     return parser.parse_args()
 
