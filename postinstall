@@ -17,7 +17,7 @@ def expand_rootfs() -> None:
         if root_part[-1] == "p":  # internal drive / sd card has a "p" at the end
             bash(f"growpart {root_part[:-1]} 2")  # grow root partition
             bash(f"partprobe {root_part[:-1]}")  # reload partition table
-            bash(f"resize2fs {root_part}p2")  # expand root partition
+            bash(f"resize2fs {root_part}2")  # expand root partition
         else:  # usb drive
             bash(f"growpart {root_part} 2")  # grow root partition
             bash(f"partprobe {root_part}")  # reload partition table
