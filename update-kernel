@@ -42,7 +42,7 @@ def check_version() -> None:
         if args.mainline or stored_settings["kernel_type"] == "mainline":
             url = "https://api.github.com/repos/eupnea-linux/mainline-kernel/releases/latest"
         else:
-            url = "https://api.github.com/repos/eupnea-linux/kernel/releases/latest"
+            url = "https://api.github.com/repos/eupnea-linux/chromeos-kernel/releases/latest"
         data_json = json.loads(urlopen(url).read())
         if data_json["tag_name"] == stored_settings["kernel_version"]:
             print_status("Kernel is already up to date")
@@ -64,9 +64,9 @@ def prepare_host() -> None:
 def download_kernel() -> str:
     # select correct link
     if args.dev_build:
-        url = "https://github.com/eupnea-linux/kernel/releases/download/dev-build/"
+        url = "https://github.com/eupnea-linux/chromeos-kernel/releases/download/dev-build/"
     else:
-        url = "https://github.com/eupnea-linux/kernel/releases/latest/download/"
+        url = "https://github.com/eupnea-linux/chromeos-kernel/releases/latest/download/"
 
     # download kernel files
     try:
@@ -97,7 +97,7 @@ def download_kernel() -> str:
         if selected_kernel_type == "mainline":
             url = "https://api.github.com/repos/eupnea-linux/mainline-kernel/releases/latest"
         else:
-            url = "https://api.github.com/repos/eupnea-linux/kernel/releases/latest"
+            url = "https://api.github.com/repos/eupnea-linux/chromeos-kernel/releases/latest"
         return json.loads(urlopen(url).read())["tag_name"]
     except URLError:
         print_error("Failed to reach github. Check your internet connection and try again or use local files with -l")
