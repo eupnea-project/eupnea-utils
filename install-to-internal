@@ -85,18 +85,17 @@ def partition_and_flash():
          "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
          "--oldblob usb_kernel --config kernel.flags")
     print_status("Flashing updated kernel")
-    bash(f'sudo dd if=internal_kernel of={internal_name}p1')
+    bash(f"dd if=internal_kernel of={internal_name}p1")
 
     print_status("Formatting internal rootfs part")
     # Create rootfs ext4 partition
     bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p2")  # 2>/dev/null is to supress yes broken pipe warning
 
     print_status("Copying rootfs to internal storage")
-    mkdir("/mnt/internal")
-    bash(f"sudo mount {internal_name}p2 /mnt/internal")
-    bash(
-        f'rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal')
-    bash('umount /mnt/internal')
+    mkdir("/mnt/internal", create_parents=True)
+    bash(f"mount {internal_name}p2 /mnt/internal")
+    bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal")
+    bash("umount -f /mnt/internal")
 
 
 # Force internal to resize on first boot
