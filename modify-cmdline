@@ -77,13 +77,14 @@ if __name__ == "__main__":
 
     # Copy old kernel partition
     kernel_partition = f"{partitions}1"
-    bash(f"dd if={kernel_partition} of=old_kernel")
+    rmfile("/old/backup_kernel")  # remove old backup
+    bash(f"dd if={kernel_partition} of=/opt/backup_kernel")  # backup kernel partition to be able to restore it later
     print_status("Signing new kernel")
-    bash("futility vbutil_kernel --repack new_kernel --version 1 --keyblock " +
+    bash("futility vbutil_kernel --repack /tmp/new_kernel --version 1 --keyblock " +
          "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
-         "--oldblob old_kernel --config cmdline")
+         "--oldblob /opt/backup_kernel --config cmdline")
     print_status("Flashing new kernel")
-    bash(f'sudo dd if=new_kernel of={kernel_partition}')
+    bash(f"dd if=/tmp/new_kernel of={kernel_partition}")
     print_status("New cmdline: ")
     if args.append:
         print_question(f"{current_cmdline} {new_cmdline}")  # green color
