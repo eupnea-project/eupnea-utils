@@ -65,14 +65,13 @@ if __name__ == "__main__":
             exit(1)
         new_cmdline = args.cmdline.strip()
 
-    # Write the new kernel commandline to a file
-    with open('cmdline', 'w') as file:
         if args.append:
             # Get the current kernel's command line
             with open("/proc/cmdline", "r") as file:
                 current_cmdline = file.read().strip()
-            file.write(f"{current_cmdline} {new_cmdline}")  # space needed as both args have no spaces before and after
-        else:
+            new_cmdline = f"{current_cmdline} {new_cmdline}"  # space needed as both args have no spaces
+        # Write the new kernel commandline to a file
+        with open('cmdline', 'w') as file:
             file.write(new_cmdline)
 
     # Copy old kernel partition
