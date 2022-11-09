@@ -83,7 +83,7 @@ def set_hostname() -> None:
     with open("/sys/devices/virtual/dmi/id/product_name", "r") as dmi:
         device_board = dmi.read().lower().strip()
     # Set hostname
-    bash(f"hostname {device_board}")
+    bash(f"hostnamectl hostname {device_board}")
 
 
 if __name__ == "__main__":
