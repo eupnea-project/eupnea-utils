@@ -15,6 +15,12 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--local-path', dest="local_path",
                         help="Local path for kernel files to use instead of downloading from github.")
+    parser.add_argument('--reserve-kernel', dest="update_reserve", default=False, action="store_true",
+                        help="Update the reserve kernel instead of the main kernel. NOT RECOMMENDED!")
+    parser.add_argument('-b', '--backup-kernel', dest="backup", default=False, action="store_true",
+                        help="Force backup current kernel to storage. Usually its done automatically.")
+    parser.add_argument('-r', '--restore', dest="restore_backup", default=False, action="store_true",
+                        help="Restore kernel backup from storage. Use '-p' to specify a local backup file.")
     parser.add_argument("--dev", action="store_true", dest="dev_build", default=False,
                         help="Use kernels from latest dev build. May be unstable.")
     parser.add_argument("--stable", action="store_true", dest="stable", default=False,
@@ -25,19 +31,20 @@ def process_args():
                         help="Use experimental 5.15 chromeos kernel. It is newer, but Google does not use "
                              "it in production yet.")
     parser.add_argument("--mainline", action="store_true", dest="mainline", default=False,
-                        help="Use mainline linux kernel instead of modified chromeos kernel. Might provide more "
+                        help="Use mainline linux kernel instead of the chromeos kernel. Might provide more "
                              "functionality on newer devices.")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
     return parser.parse_args()
 
 
 def check_version() -> None:
+    if args.update_reserve:
+        return  # Reserve kernel is not versioned
     if args.dev_build:
         return  # dev versions have no versioning
     if not stored_settings["kernel_type"] == selected_kernel_type:
         return
     else:
-        # Check if dev version was selected
         print_status("Checking for new kernel version")
         if args.mainline or stored_settings["kernel_type"] == "mainline":
             url = "https://api.github.com/repos/eupnea-linux/mainline-kernel/releases/latest"
@@ -57,7 +64,7 @@ def prepare_host() -> None:
 
     print_status("Cleaning + preparing host system")
     rmdir("/tmp/kernel-update")
-    mkdir("/tmp/kernel-update", create_parents=True)
+    mkdir("/tmp/kernel-update/modules", create_parents=True)
 
 
 # download kernel files from GitHub
@@ -112,29 +119,44 @@ def flash_kernel() -> None:
 
     # Extract modules
     print_status("Extracting kernel modules")
-    rmdir("/lib/modules")  # remove all old modules
-    mkdir("/lib/modules")
-    bash(f"tar xpf /tmp/kernel-update/modules.tar.xz -C /lib/modules/ --checkpoint=.10000")
+    # Extract modules to temporary location
+    bash(f"tar xpf /tmp/kernel-update/modules.tar.xz -C /tmp/kernel-update/modules --checkpoint=.10000")
     print("")  # break line after tar
+    # read kernel modules version
+    new_modules_version = bash(f"ls /tmp/kernel-update/modules").strip()  # get new modules dir name
+    rmdir(f"/lib/modules/{new_modules_version}")  # remove all old modules
+    # move new modules to /lib/modules
+    bash(f"mv /tmp/kernel-update/modules/{new_modules_version} /lib/modules/{new_modules_version}")
 
     # Extract kernel headers
     print_status("Extracting kernel headers")
-    dir_kernel_version = bash(f"ls /lib/modules/").strip()  # get modules dir name
-    rmdir(f"/usr/src/linux-headers-{dir_kernel_version}", keep_dir=False)  # remove old headers
-    mkdir(f"/usr/src/linux-headers-{dir_kernel_version}")
-    bash(f"tar xpf /tmp/kernel-update/headers.tar.xz -C /usr/src/linux-headers-{dir_kernel_version}/ "
+    rmdir(f"/usr/src/linux-headers-{new_modules_version}")  # remove old headers files
+    bash(f"tar xpf /tmp/kernel-update/headers.tar.xz -C /usr/src/linux-headers-{new_modules_version}/ "
          f"--checkpoint=.10000")
     print("")  # break line after tar
-    bash(f"ln -s /usr/src/linux-headers-{dir_kernel_version}/ /lib/modules/{dir_kernel_version}/build")
+    bash(f"ln -s /usr/src/linux-headers-{new_modules_version}/ /lib/modules/{new_modules_version}/build")
 
-    cpfile("/proc/cmdline", "kernel.flags")  # Reuse current kernel flags
+    cpfile("/proc/cmdline", "/tmp/kernel-update/kernel.flags")  # Reuse current kernel flags
+
+    if args.update_reserve:
+        # Get PartUUID of root
+        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        partitions = partitions[:len(partitions) - 1]  # get device "name"
+        rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}3")  # get partuuid of rootfs
+        with open("/tmp/kernel-update/kernel.flags", "w") as f:
+            # The reserve kernel has a minimal cmdline
+            f.write(f"console=tty1 root=PARTUUID={rootfs_partuuid} i915.modeset=1 rootwait rw reserve_kernel")
 
     print_status("Signing kernel")
-    bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock"
-         + " --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader kernel.flags" +
-         " --config kernel.flags --vmlinuz /tmp/kernel-update/bzImage --pack /tmp/kernel-update/bzImage.signed")
+    bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
+         "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-update/kernel.flags "
+         "--config /tmp/kernel-update/kernel.flags --vmlinuz /tmp/kernel-update/bzImage --pack "
+         "/tmp/kernel-update/bzImage.signed")
 
     print_status("Flashing kernel")
+    if args.update_reserve:
+        # Flash reserve kernel
+        bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}2")
     bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}1")
 
 
@@ -157,7 +179,20 @@ if __name__ == "__main__":
 
     # delete file to confirm script was started as root
     rmfile("/tmp/.root_ok")
-
+    if args.backup:
+        print_status("Backing up current kernel")
+        rmfile("/opt/kernel-backup")
+        bash("dd if=/dev/mmcblk0p1 of=/opt/kernel-backup")
+        print_header("Backup completed successfully")
+        exit(0)
+    if args.restore_backup:
+        print_status("Restoring backed up kernel")
+        bash("dd if=/opt/kernel-backup of=/dev/mmcblk0p1")
+        print_header("Restored kernel successfully")
+        exit(0)
+    if args.update_reserve:
+        print_warning("The reserve kernel will be updated.")
+        selected_kernel_type = "Reserve"
     if args.stable:
         print_warning("Using stable kernel")
         selected_kernel_type = "stable"
@@ -182,7 +217,8 @@ if __name__ == "__main__":
     with open("/etc/eupnea.json", "r") as file:
         stored_settings = json.load(file)
 
-    if not (args.stable or args.alt or args.exp or args.mainline):  # If user didn't set a kernel type cli option
+    # If user didn't set a kernel type cli option, check online for a newer version before updating
+    if not (args.stable or args.alt or args.exp or args.mainline or args.update_reserve):
         selected_kernel_type = stored_settings["kernel_type"]  # read kernel version from settings file
 
     check_version()
