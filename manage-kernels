@@ -182,13 +182,20 @@ if __name__ == "__main__":
     rmfile("/tmp/.root_ok")
     if args.backup:
         print_status("Backing up current kernel")
-        rmfile("/opt/kernel-backup")
-        bash("dd if=/dev/mmcblk0p1 of=/opt/kernel-backup")
+        rmfile("/opt/kernel-backup")  # remove old backup
+        print_status("Reading partition table")
+        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        partitions = partitions[:len(partitions) - 1]  # get device "name"
+        bash(f"dd if=/dev/{partitions}1 of=/opt/kernel-backup")
         print_header("Backup completed successfully")
         exit(0)
     if args.restore_backup:
         print_status("Restoring backed up kernel")
-        bash("dd if=/opt/kernel-backup of=/dev/mmcblk0p1")
+        print_status("Reading partition table")
+        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        partitions = partitions[:len(partitions) - 1]  # get device "name"
+        # Restore kernel
+        bash(f"dd if=/opt/kernel-backup of=/dev/{partitions}1")
         print_header("Restored kernel successfully")
         exit(0)
     if args.update_reserve:
