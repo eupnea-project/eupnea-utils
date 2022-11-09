@@ -9,8 +9,8 @@ from functions import *
 # Expand root partition to whole drive
 def expand_rootfs() -> None:
     with open("/etc/eupnea.json", "r") as file:
-        install_type = json.load(file)["install_type"]
-    if install_type == "image":  # only resize on image installs
+        eupnea_settings = json.load(file)
+    if eupnea_settings["install_type"] == "image":  # only resize on image installs
         # read root partition mount
         root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
         root_part = root_part[:-1]  # get device "name"
@@ -22,6 +22,11 @@ def expand_rootfs() -> None:
             bash(f"growpart {root_part} 2")  # grow root partition
             bash(f"partprobe {root_part}")  # reload partition table
             bash(f"resize2fs {root_part}2")  # expand root partition
+
+        # set install type to direct to prevent postinstall from expanding again
+        eupnea_settings["install_type"] = "expanded-image"
+        with open("/etc/eupnea.json", "w") as file:
+            json.dump(eupnea_settings, file)
 
 
 # This only pinns browser and software manager to the dock and removes mounted drives from it. NOTHING ELSE IS MODIFIED
@@ -99,7 +104,6 @@ if __name__ == "__main__":
     device_fixes()
     set_hostname()
 
-    # delete postinstall systemd service
+    # disable postinstall systemd service
     bash("systemctl disable postinstall.service")
-    cpfile("/etc/systemd/system/postinstall.service", "/etc/systemd/system/postinstall.service.disabled")
-    rmfile("/etc/systemd/system/postinstall.service")
+    bash("systemctl mask postinstall.service")
