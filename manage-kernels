@@ -194,7 +194,7 @@ if __name__ == "__main__":
     if args.update_reserve:
         print_warning("The reserve kernel will be updated.")
         selected_kernel_type = "Reserve"
-    if not (args.restore_backup or args.backup or args.update_reserve):
+    if not (args.restore_backup or args.backup or args.update_reserve or args.update):
         print_error("No action specified. Use -h for help")
         exit(1)
     if args.stable:
