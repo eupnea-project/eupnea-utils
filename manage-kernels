@@ -196,6 +196,7 @@ if __name__ == "__main__":
         selected_kernel_type = "Reserve"
     if not (args.restore_backup or args.backup or args.update_reserve):
         print_error("No action specified. Use -h for help")
+        exit(1)
     if args.stable:
         print_warning("Using stable kernel")
         selected_kernel_type = "stable"
