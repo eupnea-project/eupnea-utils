@@ -186,7 +186,7 @@ if __name__ == "__main__":
         print_status("Reading partition table")
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:len(partitions) - 1]  # get device "name"
-        bash(f"dd if=/dev/{partitions}1 of=/opt/kernel-backup")
+        bash(f"dd if={partitions}1 of=/opt/kernel-backup")
         print_header("Backup completed successfully")
         exit(0)
     if args.restore_backup:
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:len(partitions) - 1]  # get device "name"
         # Restore kernel
-        bash(f"dd if=/opt/kernel-backup of=/dev/{partitions}1")
+        bash(f"dd if=/opt/kernel-backup of={partitions}1")
         print_header("Restored kernel successfully")
         exit(0)
     if args.update_reserve:
