@@ -131,6 +131,7 @@ def flash_kernel() -> None:
 
     # Extract kernel headers
     print_status("Extracting kernel headers")
+    mkdir(f"/usr/src/linux-headers-{new_modules_version}")
     rmdir(f"/usr/src/linux-headers-{new_modules_version}")  # remove old headers files
     bash(f"tar xpf /tmp/kernel-update/headers.tar.xz -C /usr/src/linux-headers-{new_modules_version}/ "
          f"--checkpoint=.10000")
