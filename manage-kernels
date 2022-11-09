@@ -15,7 +15,8 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--local-path', dest="local_path",
                         help="Local path for kernel files to use instead of downloading from github.")
-    parser.add_argument('--reserve-kernel', dest="update_reserve", default=False, action="store_true",
+    parser.add_argument('-u', '--update', dest="update", action="store_true", help="Update main kernel")
+    parser.add_argument('--update-reserve', dest="update_reserve", default=False, action="store_true",
                         help="Update the reserve kernel instead of the main kernel. NOT RECOMMENDED!")
     parser.add_argument('-b', '--backup-kernel', dest="backup", default=False, action="store_true",
                         help="Force backup current kernel to storage. Usually its done automatically.")
@@ -193,6 +194,8 @@ if __name__ == "__main__":
     if args.update_reserve:
         print_warning("The reserve kernel will be updated.")
         selected_kernel_type = "Reserve"
+    if not (args.restore_backup or args.backup or args.update_reserve):
+        print_error("No action specified. Use -h for help")
     if args.stable:
         print_warning("Using stable kernel")
         selected_kernel_type = "stable"
