@@ -79,8 +79,11 @@ def distro_fixes() -> None:
         case "fedora":
             # Relabel files that couldn't be relabeled during install
             bash("fixfiles relabel /lib/systemd/system-generators/systemd-gpt-auto-generator")
-        case _:
-            pass
+        case "ubuntu":
+            if eupnea_json["de_name"] == "deepin":
+                # When installing from chroot the kernel modules are not installed
+                # Therefore the modules are installed when booting for the first time
+                bash("apt-get install -y ubuntudde-dde")
 
 
 def set_hostname() -> None:
