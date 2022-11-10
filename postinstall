@@ -106,4 +106,3 @@ if __name__ == "__main__":
 
     # disable postinstall systemd service
     bash("systemctl disable postinstall.service")
-    bash("systemctl mask postinstall.service")
