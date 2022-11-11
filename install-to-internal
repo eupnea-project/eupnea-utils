@@ -58,11 +58,13 @@ def partition_and_flash():
     # READ: https://wiki.gentoo.org/wiki/Creating_bootable_media_for_depthcharge_based_devices
     bash(f"parted -s {internal_name} mklabel gpt")
     bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 1 65")  # kernel partition
-    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 65 100%")  # rootfs partition
-    bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # depthcharge flags
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 65 130")  # reserve kernel partition
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 130 100%")  # rootfs partition
+    bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # set kernel flags
+    bash(f"cgpt add -i 2 -t kernel -S 1 -T 5 -P 1 {internal_name}")  # set reserve kernel flags
 
     # get uuid of rootfs partition
-    rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {internal_name}p2")
+    rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {internal_name}p3")
 
     # read current cmdline and update its partuuid
     with open("/proc/cmdline", "r") as flags:
@@ -86,15 +88,17 @@ def partition_and_flash():
          "--oldblob usb_kernel --config kernel.flags")
     print_status("Flashing updated kernel")
     bash(f"dd if=internal_kernel of={internal_name}p1")
+    bash(f"dd if=internal_kernel of={internal_name}p2")  # Backup kernel
 
     print_status("Formatting internal rootfs part")
     # Create rootfs ext4 partition
-    bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p2")  # 2>/dev/null is to supress yes broken pipe warning
+    bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p3")  # 2>/dev/null is to supress yes broken pipe warning
 
     print_status("Copying rootfs to internal storage")
     mkdir("/mnt/internal", create_parents=True)
-    bash(f"mount {internal_name}p2 /mnt/internal")
-    bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal")
+    bash(f"mount {internal_name}p3 /mnt/internal")
+    bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
+         "--exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal")
     bash("umount -f /mnt/internal")
 
 
@@ -102,7 +106,7 @@ def partition_and_flash():
 def post_copy() -> None:
     # Mount internal rootfs
     mkdir("/mnt/depthboot-internal")
-    bash(f"mount {internal_name}p2 /mnt/depthboot-internal")
+    bash(f"mount {internal_name}p3 /mnt/depthboot-internal")
 
     # set build type to image in depthboot settings
     with open("/mnt/depthboot-internal/etc/eupnea.json", "r") as settings_file:

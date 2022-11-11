@@ -74,19 +74,22 @@ if __name__ == "__main__":
         with open('cmdline', 'w') as file:
             file.write(new_cmdline)
 
-    # Copy old kernel partition
-    kernel_partition = f"{partitions}1"
+    # Backup old kernel to part 2
     rmfile("/old/backup_kernel")  # remove old backup
-    bash(f"dd if={kernel_partition} of=/opt/backup_kernel")  # backup kernel partition to be able to restore it later
+    bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to part 2
+    bash(f"dd if={partitions}1 of=/tmp/old_kernel")  # for futility
     print_status("Signing new kernel")
     bash("futility vbutil_kernel --repack /tmp/new_kernel --version 1 --keyblock " +
          "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
-         "--oldblob /opt/backup_kernel --config cmdline")
+         "--oldblob /tmp/old_kernel --config cmdline")
     print_status("Flashing new kernel")
-    bash(f"dd if=/tmp/new_kernel of={kernel_partition}")
+    bash(f"dd if=/tmp/new_kernel of={partitions}1")
     print_status("New cmdline: ")
     if args.append:
         print_question(f"{current_cmdline} {new_cmdline}")  # green color
     else:
         print_question(f"{new_cmdline}")
-    print_header("Reboot to apply changes")
+
+    print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
+    input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+    bash("reboot")

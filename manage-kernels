@@ -13,15 +13,13 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--local-path', dest="local_path",
-                        help="Local path for kernel files to use instead of downloading from github.")
     parser.add_argument('-u', '--update', dest="update", action="store_true", help="Update main kernel")
-    parser.add_argument('--update-reserve', dest="update_reserve", default=False, action="store_true",
-                        help="Update the reserve kernel instead of the main kernel. NOT RECOMMENDED!")
     parser.add_argument('-b', '--backup-kernel', dest="backup", default=False, action="store_true",
-                        help="Force backup current kernel to storage. Usually its done automatically.")
+                        help="Force backup current kernel to second partition. Usually its done automatically.")
     parser.add_argument('-r', '--restore', dest="restore_backup", default=False, action="store_true",
                         help="Restore kernel backup from storage. Use '-p' to specify a local backup file.")
+    parser.add_argument('-p', '--local-path', dest="local_path",
+                        help="Local path for kernel files to use instead of downloading from github.")
     parser.add_argument("--dev", action="store_true", dest="dev_build", default=False,
                         help="Use kernels from latest dev build. May be unstable.")
     parser.add_argument("--stable", action="store_true", dest="stable", default=False,
@@ -39,8 +37,6 @@ def process_args():
 
 
 def check_version() -> None:
-    if args.update_reserve:
-        return  # Reserve kernel is not versioned
     if args.dev_build:
         return  # dev versions have no versioning
     if not stored_settings["kernel_type"] == selected_kernel_type:
@@ -140,15 +136,6 @@ def flash_kernel() -> None:
 
     cpfile("/proc/cmdline", "/tmp/kernel-update/kernel.flags")  # Reuse current kernel flags
 
-    if args.update_reserve:
-        # Get PartUUID of root
-        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-        partitions = partitions[:len(partitions) - 1]  # get device "name"
-        rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}3")  # get partuuid of rootfs
-        with open("/tmp/kernel-update/kernel.flags", "w") as f:
-            # The reserve kernel has a minimal cmdline
-            f.write(f"console=tty1 root=PARTUUID={rootfs_partuuid} i915.modeset=1 rootwait rw reserve_kernel")
-
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
          "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-update/kernel.flags "
@@ -156,9 +143,6 @@ def flash_kernel() -> None:
          "/tmp/kernel-update/bzImage.signed")
 
     print_status("Flashing kernel")
-    if args.update_reserve:
-        # Flash reserve kernel
-        bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}2")
     bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}1")
 
 
@@ -187,8 +171,8 @@ if __name__ == "__main__":
         print_status("Reading partition table")
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:len(partitions) - 1]  # get device "name"
-        bash(f"dd if={partitions}1 of=/opt/kernel-backup")
-        print_header("Backup completed successfully")
+        bash(f"dd if={partitions}1 of={partitions}2")
+        print_header("Backuped up kernel successfully")
         exit(0)
     if args.restore_backup:
         print_status("Restoring backed up kernel")
@@ -196,13 +180,10 @@ if __name__ == "__main__":
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:len(partitions) - 1]  # get device "name"
         # Restore kernel
-        bash(f"dd if=/opt/kernel-backup of={partitions}1")
+        bash(f"dd if={partitions}2 of={partitions}1")
         print_header("Restored kernel successfully")
         exit(0)
-    if args.update_reserve:
-        print_warning("The reserve kernel will be updated.")
-        selected_kernel_type = "Reserve"
-    if not (args.restore_backup or args.backup or args.update_reserve or args.update):
+    if not (args.restore_backup or args.backup or args.update):
         print_error("No action specified. Use -h for help")
         exit(1)
     if args.stable:
@@ -230,7 +211,7 @@ if __name__ == "__main__":
         stored_settings = json.load(file)
 
     # If user didn't set a kernel type cli option, check online for a newer version before updating
-    if not (args.stable or args.alt or args.exp or args.mainline or args.update_reserve):
+    if not (args.stable or args.alt or args.exp or args.mainline):
         selected_kernel_type = stored_settings["kernel_type"]  # read kernel version from settings file
 
     check_version()
@@ -263,18 +244,17 @@ if __name__ == "__main__":
         print_status("Relabeling modules")
         bash("fixfiles restore /lib/modules")
 
-    # Update settings file if not updating reserve kernel
-    if not args.update_reserve:
-        print_status("Updating settings file")
-        updated_settings = stored_settings
-        updated_settings["kernel_type"] = selected_kernel_type
-        updated_settings["kernel_version"] = new_kernel_version
-        if args.dev_build:
-            updated_settings["dev_build"] = True
-        else:
-            updated_settings["dev_build"] = False
-        with open("/etc/eupnea.json", "w") as file:
-            json.dump(updated_settings, file)
+    # Update settings file
+    print_status("Updating settings file")
+    updated_settings = stored_settings
+    updated_settings["kernel_type"] = selected_kernel_type
+    updated_settings["kernel_version"] = new_kernel_version
+    if args.dev_build:
+        updated_settings["dev_build"] = True
+    else:
+        updated_settings["dev_build"] = False
+    with open("/etc/eupnea.json", "w") as file:
+        json.dump(updated_settings, file)
 
     print_header("Kernel update complete! Please reboot to use the new kernel")
     input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
