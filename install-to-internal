@@ -58,8 +58,8 @@ def partition_and_flash():
     # READ: https://wiki.gentoo.org/wiki/Creating_bootable_media_for_depthcharge_based_devices
     bash(f"parted -s {internal_name} mklabel gpt")
     bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 1 65")  # kernel partition
-    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 65 130")  # reserve kernel partition
-    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 130 100%")  # rootfs partition
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 65 131")  # reserve kernel partition
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 131 100%")  # rootfs partition
     bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # set kernel flags
     bash(f"cgpt add -i 2 -t kernel -S 1 -T 5 -P 1 {internal_name}")  # set reserve kernel flags
 
