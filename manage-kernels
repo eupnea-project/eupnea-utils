@@ -184,7 +184,7 @@ if __name__ == "__main__":
         print_header("Restored kernel successfully")
         exit(0)
     if not (args.restore_backup or args.backup or args.update):
-        print_error("No action specified. Use -h for help")
+        print_error("No action specified. Available actions: -b, -r, -u. Use -h for more info")
         exit(1)
     if args.stable:
         print_warning("Using stable kernel")
