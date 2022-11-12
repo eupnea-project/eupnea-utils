@@ -13,8 +13,8 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--update', dest="update", action="store_true", help="Update main kernel")
-    parser.add_argument('-b', '--backup-kernel', dest="backup", default=False, action="store_true",
+    parser.add_argument('-u', '--update', dest="update", action="store_true", default=False, help="Update main kernel")
+    parser.add_argument('-b', '--backup', dest="backup", default=False, action="store_true",
                         help="Force backup current kernel to second partition. Usually its done automatically.")
     parser.add_argument('-r', '--restore', dest="restore_backup", default=False, action="store_true",
                         help="Restore kernel backup from storage. Use '-p' to specify a local backup file.")
@@ -184,7 +184,7 @@ if __name__ == "__main__":
         print_header("Restored kernel successfully")
         exit(0)
     if not (args.restore_backup or args.backup or args.update):
-        print_error("No action specified. Available actions: -b, -r, -u. Use -h for more info")
+        print_error("No action specified. Available actions: --backup, --restore, --update. Use -h for more info")
         exit(1)
     if args.stable:
         print_warning("Using stable kernel")
