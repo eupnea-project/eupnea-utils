@@ -115,10 +115,10 @@ def post_copy() -> None:
     with open("/mnt/depthboot-internal/etc/eupnea.json", "w") as settings_file:
         json.dump(settings, settings_file)
 
-    # add postconfig service hook
-    print_status("Adding postinstall service")
-    cpfile("/etc/eupnea/postinstall.service", "/mnt/depthboot-internal/etc/systemd/system/postinstall.service")
+    # Enable postinstall service
+    print_status("Enabling systemd services")
     chroot("systemctl enable postinstall.service")
+    chroot("systemctl enable eupnea-update.timer")
 
 
 # chroot command
