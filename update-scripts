@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import os
 import sys
 import argparse
@@ -68,14 +69,25 @@ if __name__ == "__main__":
                 continue  # dont copy license, readme and gitignore
             else:
                 cpfile(file.absolute().as_posix(), f"/usr/local/bin/{file.name}")
-    # Copy audio script
-    cpfile("/tmp/scripts-update/audio/setup-audio", "/usr/local/bin/setup-audio")
-
     # Copy postinstall configs
     cpdir("/tmp/scripts-update/postinstall/configs", "/etc/eupnea")
 
+    # Copy audio script
+    cpfile("/tmp/scripts-update/audio/setup-audio", "/usr/local/bin/setup-audio")
     # Copy audio configs
     cpdir("/tmp/scripts-update/audio/configs", "/etc/eupnea")
+
+    # Set versions in /etc/eupnea.json
+    with open("/etc/eupnea.json", "r") as file:
+        eupnea_json = json.load(file)
+    # Read git latest commit hashes
+    with open("/tmp/scripts-update/postinstall/.git/refs/heads/main", "r") as file:
+        eupnea_json["postinstall_version"] = file.read()
+    with open("/tmp/scripts-update/audio/.git/refs/heads/main", "r") as file:
+        eupnea_json["audio_version"] = file.read()
+    # Write new versions to /etc/eupnea.json
+    with open("/etc/eupnea.json", "w") as file:
+        json.dump(eupnea_json, file)
 
     # Re enable postinstall service
     print_status("Enabling postinstall service")
