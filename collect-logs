@@ -29,7 +29,7 @@ def collect_audio_logs() -> None:
 
     def run_pipewire() -> None:
         try:
-            bash("LANG=C pipewire -vvvv > /tmp/logs-eupnea/pipewire_verbose.log 2>&1")
+            bash("LANG=C /usr/bin/pipewire -vvvv > /tmp/logs-eupnea/pipewire_verbose.log 2>&1")
         except subprocess.CalledProcessError:
             print_warning("Pipewire exited with an error")
             with open("/tmp/logs-eupnea/pipewire_fail.log", "w") as file:
