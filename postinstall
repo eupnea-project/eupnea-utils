@@ -15,9 +15,9 @@ def expand_rootfs() -> None:
         root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
         root_part = root_part[:-1]  # get device "name"
         if root_part[-1] == "p":  # internal drive / sd card has a "p" at the end
-            bash(f"growpart {root_part[:-1]} 2")  # grow root partition
+            bash(f"growpart {root_part[:-1]} 3")  # grow root partition
             bash(f"partprobe {root_part[:-1]}")  # reload partition table
-            bash(f"resize2fs {root_part}2")  # expand root partition
+            bash(f"resize2fs {root_part}3")  # expand root partition
         else:  # usb drive
             bash(f"growpart {root_part} 3")  # grow root partition
             bash(f"partprobe {root_part}")  # reload partition table
