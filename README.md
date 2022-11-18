@@ -32,7 +32,7 @@ Installs EupneaOS/Depthboot to internal storage. Uses rsync to copy files.
 
 Kernel manage script. Has the following features:
 
-* Update current kernel to latest version. Automatically triggered by eupnea-update every 24 hours.
+* Update current kernel to the latest version. Automatically triggered by eupnea-update every 24 hours.
 * Switch to a different kernel type
 * Backup current kernel
 * Restore backed up kernel
