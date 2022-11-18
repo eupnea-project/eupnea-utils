@@ -147,24 +147,15 @@ def flash_kernel() -> None:
 
 
 if __name__ == "__main__":
-    if os.geteuid() == 0 and not path_exists("/tmp/.root_ok"):
-        print_error("Please start the script as non-root/without sudo")
-        exit(1)
-
     args = process_args()
 
     # Restart script as root
     if not os.geteuid() == 0:
-        # install kernel packages before elevating to root, as makepkg needs to be run as non-root
-        install_kernel_packages()
-        # create empty file to confirm script was started as non-root
-        with open("/tmp/.root_ok", "w") as file:
-            file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    # delete file to confirm script was started as root
-    rmfile("/tmp/.root_ok")
+    install_kernel_packages()
+
     if args.backup:
         print_status("Backing up current kernel")
         rmfile("/opt/kernel-backup")  # remove old backup

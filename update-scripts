@@ -18,22 +18,12 @@ def process_args():
 
 # This script will update the postinstall scripts on an existing installation.
 if __name__ == "__main__":
-    if os.geteuid() == 0 and not path_exists("/tmp/.root_ok"):
-        print_error("Please start the script as non-root/without sudo")
-        exit(1)
-
     args = process_args()
 
     # Restart script as root
     if not os.geteuid() == 0:
-        # create empty file to confirm script was started as non-root
-        with open("/tmp/.root_ok", "w") as file:
-            file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
-
-    # delete file to confirm script was started as root
-    rmfile("/tmp/.root_ok")
 
     # delete old scripts tmp dir
     rmdir("/tmp/scripts-update")

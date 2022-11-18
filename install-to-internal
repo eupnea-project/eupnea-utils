@@ -127,24 +127,14 @@ def chroot(command: str) -> str:
 
 
 if __name__ == "__main__":
-    if os.geteuid() == 0 and not path_exists("/tmp/.root_ok"):
-        print_error("Please start the script as non-root/without sudo")
-        exit(1)
-
     args = process_args()
 
     # Restart script as root
     if not os.geteuid() == 0:
-        # install kernel packages before elevating to root, as makepkg needs to be run as non-root
-        install_kernel_packages()
-        # create empty file to confirm script was started as non-root
-        with open("/tmp/.root_ok", "w") as file:
-            file.write("")
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    # delete file to confirm script was started as root
-    rmfile("/tmp/.root_ok")
+    install_kernel_packages()
 
     if args.verbose:
         print_warning("Verbosity increased")
@@ -193,5 +183,5 @@ if __name__ == "__main__":
 
     partition_and_flash()
     post_copy()
-    print_header("Install successful")
+    print_header("Installed successfully to internal storage")
     print_header("You can now boot Depthboot from internal storage")
