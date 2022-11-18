@@ -81,6 +81,6 @@ if __name__ == "__main__":
 
     # Re enable postinstall service
     print_status("Enabling postinstall service")
-    bash("systemctl enable postinstall.service")
+    bash("systemctl enable eupnea-postinstall.service")
 
     print_header("Scripts updated successfully")

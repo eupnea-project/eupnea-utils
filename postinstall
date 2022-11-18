@@ -108,4 +108,4 @@ if __name__ == "__main__":
     set_hostname()
 
     # disable postinstall systemd service
-    bash("systemctl disable postinstall.service")
+    bash("systemctl disable eupnea-postinstall.service")
