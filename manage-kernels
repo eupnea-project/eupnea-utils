@@ -166,14 +166,15 @@ if __name__ == "__main__":
         print_header("Backuped up kernel successfully")
         exit(0)
     if args.restore_backup:
-        print_status("Restoring backed up kernel")
+        print_header("Restoring backed up kernel")
         print_status("Reading partition table")
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:len(partitions) - 1]  # get device "name"
         # Restore kernel
         bash(f"dd if={partitions}2 of={partitions}1")
-        print_header("Restored kernel successfully")
-        exit(0)
+        print_header("Restored kernel successfully! Please reboot to use the restored kernel")
+        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+        bash("reboot")
     if not (args.restore_backup or args.backup or args.update):
         print_error("No action specified. Available actions: --backup, --restore, --update. Use -h for more info")
         exit(1)
