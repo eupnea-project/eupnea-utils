@@ -41,15 +41,6 @@ if __name__ == "__main__":
              "/tmp/scripts-update/audio")
     stop_progress()  # stop fake download progress
 
-    # Delete old scripts
-    with open("/tmp/scripts-update/postinstall/configs/to-delete.conf", "r") as file:
-        to_delete = file.readlines()
-    for script in to_delete:
-        if script.startswith("#"):
-            continue
-        else:
-            rmfile(script)
-
     # Copy new scripts to /usr/local/bin
     print_status("Copying scripts and configs")
     # Copy postinstall scripts only
