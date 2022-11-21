@@ -102,15 +102,15 @@ if __name__ == "__main__":
 
     set_verbose(True)  # always run verbose
 
+    # Reload sddm to fix first boot issue if fix file is present
+    if path_exists("/etc/sddm.fix"):
+        bash("systemctl reload sddm.service")
+        rmfile("/etc/sddm.fix")
+
     expand_rootfs()
     # customize_gnome()
     device_fixes()
     set_hostname()
-
-    # Reload sddm to fix first boot issue if fix file is present
-    if path_exists("/etc/sddm.fix"):
-        bash("systemctl reload sddm")
-        rmfile("/etc/sddm.fix")
 
     # disable postinstall systemd service
     bash("systemctl disable eupnea-postinstall.service")
