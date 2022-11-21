@@ -104,7 +104,10 @@ if __name__ == "__main__":
 
     # Reload sddm to fix first boot issue if fix file is present
     if path_exists("/etc/sddm.fix"):
-        bash("systemctl reload sddm.service")
+        try:
+            bash("systemctl reload sddm.service")
+        except subprocess.CalledProcessError:
+            pass  # ignore error, sddm restarts regardless
         rmfile("/etc/sddm.fix")
 
     expand_rootfs()
