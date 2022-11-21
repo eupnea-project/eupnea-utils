@@ -116,7 +116,7 @@ def collect_system_logs() -> None:
         file.write(create_tree("/usr/share/alsa/ucm2"))
 
     print_status("Collecting eupnea settings")
-    cpfile("/etc/eupnea.json", "/tmp/logs-eupnea/eupnea-settings.log")
+    cpfile("/etc/eupnea.json", "/tmp/logs-eupnea/eupnea-settings.json")
 
 
 if __name__ == "__main__":
