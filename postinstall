@@ -107,5 +107,10 @@ if __name__ == "__main__":
     device_fixes()
     set_hostname()
 
+    # Reload sddm to fix first boot issue if fix file is present
+    if path_exists("/etc/sddm.fix"):
+        bash("systemctl reload sddm")
+        rmfile("/etc/sddm.fix")
+
     # disable postinstall systemd service
     bash("systemctl disable eupnea-postinstall.service")
