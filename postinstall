@@ -29,19 +29,6 @@ def expand_rootfs() -> None:
             json.dump(eupnea_settings, file)
 
 
-# This only pinns browser and software manager to the dock and removes mounted drives from it. NOTHING ELSE IS MODIFIED
-def customize_gnome() -> None:
-    pass
-    # not possible due to missing dbus as root user and not knowing username
-    '''
-    print_status("Customizing Gnome")
-    bash('dconf write /org/gnome/shell/favorite-apps \"[\'org.gnome.Epiphany.desktop\', \'org.gnome.Software'
-         '.desktop\', \'org.gnome.Nautilus.desktop\', \'yelp.desktop\']\"')
-    # remove internal mounts as there is about 5 of them
-    bash("dconf write /org/gnome/shell/extensions/dash-to-dock/show-mounts false")
-    '''
-
-
 def device_fixes() -> None:
     with open("/sys/devices/virtual/dmi/id/product_name", "r") as file:
         product_name = file.read().strip().lower()
@@ -108,7 +95,6 @@ if __name__ == "__main__":
         rmfile("/etc/sddm.fix")
 
     expand_rootfs()
-    # customize_gnome()
     device_fixes()
     set_hostname()
 
