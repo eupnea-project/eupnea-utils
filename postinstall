@@ -30,6 +30,9 @@ def expand_rootfs() -> None:
 
 
 def device_fixes() -> None:
+    """
+    This function determines the device and applies specific fixes if needed
+    """
     with open("/sys/devices/virtual/dmi/id/product_name", "r") as file:
         product_name = file.read().strip().lower()
     match product_name:
@@ -43,25 +46,10 @@ def device_fixes() -> None:
             # enable service
             bash("systemctl enable touchscreen-fix.service")
 
-        # all Picasso/deli amd devices
-        case "berknip" | "dirinboz" | "ezkinil" | "gumboz" | "morphius" | "vilboz" | "vilboz360" | "woomax":
-            # Copy ucm config for amd audio
-            mkdir("/usr/share/alsa/ucm2/AMD/acp3xalc5682m98")
-            # cp ucm configs
-            cpfile("/etc/eupnea/device-specific/amd-ucm/HiFi.conf",
-                   "/usr/share/alsa/ucm2/AMD/acp3xalc5682m98/HiFi.conf")
-            cpfile("/etc/eupnea/device-specific/amd-ucm/acp3xalc5682m98.conf",
-                   "/usr/share/alsa/ucm2/AMD/acp3xalc5682m98/acp3xalc5682m98.conf")
-            # create conf.d symlink
-            mkdir("/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98")
-            bash("ln -s /usr/share/alsa/ucm2/AMD/acp3xalc5682m98/acp3xalc5682m98.conf "
-                 "/usr/share/alsa/ucm2/conf.d/acp3xalc5682m98/acp3xalc5682m98.conf")
-
 
 def distro_fixes() -> None:
     with open("/etc/eupnea.json", "r") as file:
         eupnea_json = json.load(file)
-
     match eupnea_json["distro_name"]:
         case "ubuntu":
             if eupnea_json["de_name"] == "deepin":
@@ -86,13 +74,14 @@ if __name__ == "__main__":
 
     set_verbose(True)  # always run verbose
 
-    # Reload sddm to fix first boot issue if fix file is present
-    if path_exists("/etc/sddm.fix"):
+    while True:
         try:
-            bash("systemctl reload sddm.service")
+            if bash("systemctl status sddm.service").__contains__("active (running)"):
+                break
+            else:
+                sleep(2)
         except subprocess.CalledProcessError:
-            pass  # ignore error, sddm restarts regardless
-        rmfile("/etc/sddm.fix")
+            break  # sddm is not installed
 
     expand_rootfs()
     device_fixes()
