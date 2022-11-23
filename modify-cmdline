@@ -11,6 +11,8 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--append', action="store_true", dest="append", default=False,
                         help="Append a flag rather than replacing the whole command line")
+    parser.add_argument('-i', '--interactive', action="store_true", dest="interactive", default=False,
+                        help="Open cmdline in a text editor for easy editing")
     parser.add_argument('-r', '--reset', action="store_true", dest="reset", default=False,
                         help="Reset to default command line")
     parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
@@ -60,6 +62,26 @@ if __name__ == "__main__":
             with open("/proc/cmdline", "r") as file:
                 current_cmdline = file.read().strip()
             new_cmdline = f"{current_cmdline} {new_cmdline}"  # space needed as both args have no spaces
+
+        if args.interactive:
+            # Save current cmdline to a file
+            with open("/proc/cmdline", "r") as file:
+                current_cmdline = file.read().strip()
+            with open("/tmp/cmdline", "a") as file:
+                file.write(current_cmdline)
+
+            # Default to nano, fallback to vim or vi
+            if path_exists("/usr/bin/nano"):
+                bash("nano /tmp/cmdline")
+            elif path_exists("/usr/bin/vim"):
+                bash("vim /tmp/cmdline")
+            else:
+                bash("vi /tmp/cmdline")
+
+            # Get edited cmdline
+            with open("/tmp/cmdline", "r") as file:
+                new_cmdline = file.read().strip()
+
         # Write the new kernel commandline to a file
         with open('cmdline', 'w') as file:
             file.write(new_cmdline)
