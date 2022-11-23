@@ -9,21 +9,11 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--append', action="store_true", dest="append", default=False,
-                        help="Append a flag rather than replacing the whole command line")
-    parser.add_argument('-i', '--interactive', action="store_true", dest="interactive", default=False,
-                        help="Open cmdline in a text editor for easy editing")
     parser.add_argument('-r', '--reset', action="store_true", dest="reset", default=False,
                         help="Reset to default command line")
     parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
                         help="Show current command line")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
-    # --set is more for ux than actual use
-    parser.add_argument('-s', '--set', action="store_true",
-                        help="Set new cmdline, must be followed by the new cmdline in quotes, example: \n" +
-                             r'modify-cmdline -s "console=tty1 root=PARTUUID=7d83c214-289e-4e8b-93cc-685aea502 '
-                             r'f59 i915.modeset=1 rootwait rw fbcon=logo-pos:center,logo-count:1 loglevel=0 splash"')
-    parser.add_argument(dest='cmdline', type=str, nargs="?")
     return parser.parse_args()
 
 
@@ -51,56 +41,33 @@ if __name__ == "__main__":
                        "logo-count:1 quiet loglevel=3 vt.global_cursor_default=0 splash"
         rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}2")  # get partuuid of rootfs
         new_cmdline = temp_cmdline.replace("insert_partuuid", rootfs_partuuid)  # replace PARTUUID in default cmdline
-    else:
-        if args.cmdline is None:
-            print_error("No cmdline provided. Use --help for help")
-            exit(1)
-        new_cmdline = args.cmdline.strip()
-
-        if args.append:
-            # Get the current kernel's command line
-            with open("/proc/cmdline", "r") as file:
-                current_cmdline = file.read().strip()
-            new_cmdline = f"{current_cmdline} {new_cmdline}"  # space needed as both args have no spaces
-
-        if args.interactive:
-            # Save current cmdline to a file
-            with open("/proc/cmdline", "r") as file:
-                current_cmdline = file.read().strip()
-            with open("/tmp/cmdline", "a") as file:
-                file.write(current_cmdline)
-
-            # Default to nano, fallback to vim or vi
-            if path_exists("/usr/bin/nano"):
-                bash("nano /tmp/cmdline")
-            elif path_exists("/usr/bin/vim"):
-                bash("vim /tmp/cmdline")
-            else:
-                bash("vi /tmp/cmdline")
-
-            # Get edited cmdline
-            with open("/tmp/cmdline", "r") as file:
-                new_cmdline = file.read().strip()
-
-        # Write the new kernel commandline to a file
-        with open('cmdline', 'w') as file:
+        with open("/tmp/cmdline.txt", "w") as file:
             file.write(new_cmdline)
+    else:
+        # Save current cmdline to a file
+        with open("/proc/cmdline", "r") as file:
+            current_cmdline = file.read().strip()
+        with open("/tmp/cmdline", "a") as file:
+            file.write(current_cmdline)
+
+        # Prompt user to edit cmdline with a cli text editor
+        # Default to nano, fallback to vim or vi
+        if path_exists("/usr/bin/nano"):
+            bash("nano /tmp/cmdline")
+        elif path_exists("/usr/bin/vim"):
+            bash("vim /tmp/cmdline")
+        else:
+            bash("vi /tmp/cmdline")
 
     # Backup old kernel to part 2
-    rmfile("/old/backup_kernel")  # remove old backup
-    bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to part 2
+    bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
     bash(f"dd if={partitions}1 of=/tmp/old_kernel")  # for futility
     print_status("Signing new kernel")
     bash("futility vbutil_kernel --repack /tmp/new_kernel --version 1 --keyblock " +
          "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
-         "--oldblob /tmp/old_kernel --config cmdline")
+         "--oldblob /tmp/old_kernel --config /tmp/cmdline")
     print_status("Flashing new kernel")
     bash(f"dd if=/tmp/new_kernel of={partitions}1")
-    print_status("New cmdline: ")
-    if args.append:
-        print_question(f"{current_cmdline} {new_cmdline}")  # green color
-    else:
-        print_question(f"{new_cmdline}")
 
     print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
     input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
