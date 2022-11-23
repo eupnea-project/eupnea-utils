@@ -1,6 +1,6 @@
 # Eupnea-scipts
 
-Various post install scripts for eupnea, written in python. Run `scriptname --help` to see all available cli options.
+Various post install scripts for eupnea, written in python. Run `scriptname --help` to see all available cli options for each script.
 
 ### Collect-logs
 
