@@ -38,7 +38,7 @@ if __name__ == "__main__":
     if args.reset:
         print_status("Resetting to default command line")
         temp_cmdline = "console=tty1 root=PARTUUID=insert_partuuid i915.modeset=1 rootwait rw fbcon=logo-pos:center," \
-                       "logo-count:1 quiet loglevel=3 vt.global_cursor_default=0 splash"
+                       "logo-count:1"
         rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}2")  # get partuuid of rootfs
         new_cmdline = temp_cmdline.replace("insert_partuuid", rootfs_partuuid)  # replace PARTUUID in default cmdline
         with open("/tmp/cmdline.txt", "w") as file:
