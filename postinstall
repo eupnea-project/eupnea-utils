@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     while True:
         try:
-            if bash("systemctl status sddm.service").__contains__("active (running)"):
+            if bash("systemctl status NetworkManager.service").__contains__("active (running)"):
                 break
             else:
                 sleep(2)
