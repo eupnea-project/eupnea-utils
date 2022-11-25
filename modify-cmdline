@@ -47,18 +47,20 @@ if __name__ == "__main__":
         # Save current cmdline to a file
         with open("/proc/cmdline", "r") as file:
             current_cmdline = file.read().strip()
-        with open("/tmp/cmdline", "a") as file:
+        with open("/tmp/cmdline", "w") as file:
             file.write(current_cmdline)
 
         # Prompt user to edit cmdline with a cli text editor
         # Default to nano, fallback to vim or vi
+        # bash from functions.py doesn't work interactively -> use os.system
         if path_exists("/usr/bin/nano"):
-            bash("nano /tmp/cmdline")
+            os.system("nano /tmp/cmdline")
         elif path_exists("/usr/bin/vim"):
-            bash("vim /tmp/cmdline")
+            os.system("vim /tmp/cmdline")
         else:
-            bash("vi /tmp/cmdline")
+            os.system("vi /tmp/cmdline")
 
+    print_status("Backing up kernel")
     # Backup old kernel to part 2
     bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
     bash(f"dd if={partitions}1 of=/tmp/old_kernel")  # for futility
