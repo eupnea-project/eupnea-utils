@@ -42,7 +42,7 @@ if __name__ == "__main__":
         rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}2")  # get partuuid of rootfs
         new_cmdline = temp_cmdline.replace("insert_partuuid", rootfs_partuuid)  # replace PARTUUID in default cmdline
         with open("/tmp/cmdline", "w") as file:
-            file.write(new_cmdline)
+            file.write(new_cmdline + "\n")
     else:
         # Save current cmdline to a file
         with open("/proc/cmdline", "r") as file:
