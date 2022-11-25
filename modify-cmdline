@@ -60,6 +60,11 @@ if __name__ == "__main__":
         else:
             os.system("vi /tmp/cmdline")
 
+    # remove cros_secure kernel flags, as its added automatically each boot
+    with open("/tmp/cmdline", "r") as file:
+        tmp_cmdline = file.read().strip()
+    tmp_cmdline = tmp_cmdline.replace("cros_secure ", "")
+
     print_status("Backing up kernel")
     # Backup old kernel to part 2
     bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
