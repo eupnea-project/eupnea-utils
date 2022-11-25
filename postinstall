@@ -77,6 +77,7 @@ if __name__ == "__main__":
     while True:
         try:
             if bash("systemctl status NetworkManager.service").__contains__("active (running)"):
+                sleep(5)  # wait for network service to fully start
                 break
             else:
                 sleep(2)
