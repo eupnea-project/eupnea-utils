@@ -32,6 +32,8 @@ def process_args():
     parser.add_argument("--mainline", action="store_true", dest="mainline", default=False,
                         help="Use mainline linux kernel instead of the chromeos kernel. Might provide more "
                              "functionality on newer devices.")
+    parser.add_argument("--non-interactive", action="store_true", dest="noninteractive", default=False,
+                        help="Run in non-interactive mode.")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
     return parser.parse_args()
 
@@ -248,6 +250,7 @@ if __name__ == "__main__":
     with open("/etc/eupnea.json", "w") as file:
         json.dump(updated_settings, file)
 
-    print_header("Kernel update complete! Please reboot to use the new kernel")
-    input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
-    bash("reboot")
+    if not args.noninteractive:
+        print_header("Kernel update complete! Please reboot to use the new kernel")
+        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+        bash("reboot")
