@@ -41,7 +41,9 @@ def process_args():
 def check_version() -> None:
     if args.dev_build:
         return  # dev versions have no versioning
-    if not stored_settings["kernel_type"] == selected_kernel_type:
+    elif args.local_path:
+        return
+    elif not stored_settings["kernel_type"] == selected_kernel_type:
         return
     else:
         print_status("Checking for new kernel version")
@@ -238,11 +240,12 @@ if __name__ == "__main__":
         print_status("Relabeling modules")
         bash("fixfiles restore /lib/modules")
 
-    # Update settings file
-    print_status("Updating settings file")
-    updated_settings = stored_settings
-    updated_settings["kernel_type"] = selected_kernel_type
-    updated_settings["kernel_version"] = new_kernel_version
+    # Update settings file if not using local files
+    if not args.local_path:
+        print_status("Updating settings file")
+        updated_settings = stored_settings
+        updated_settings["kernel_type"] = selected_kernel_type
+        updated_settings["kernel_version"] = new_kernel_version
     if args.dev_build:
         updated_settings["dev_build"] = True
     else:
