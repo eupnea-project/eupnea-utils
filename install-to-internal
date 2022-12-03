@@ -99,20 +99,15 @@ def partition_and_flash():
     bash(f"mount {internal_name}p3 /mnt/internal")
     bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
          "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
-    bash("umount -f /mnt/internal")
 
 
 # Force internal to resize on first boot
 def post_copy() -> None:
-    # Mount internal rootfs
-    mkdir("/mnt/depthboot-internal")
-    bash(f"mount {internal_name}p3 /mnt/depthboot-internal")
-
     # set build type to image in depthboot settings
-    with open("/mnt/depthboot-internal/etc/eupnea.json", "r") as settings_file:
+    with open("/mnt/internal/etc/eupnea.json", "r") as settings_file:
         settings = json.load(settings_file)
     settings["install_type"] = "internal"
-    with open("/mnt/depthboot-internal/etc/eupnea.json", "w") as settings_file:
+    with open("/mnt/internal/etc/eupnea.json", "w") as settings_file:
         json.dump(settings, settings_file)
 
     # Enable postinstall service
@@ -123,7 +118,7 @@ def post_copy() -> None:
 
 # chroot command
 def chroot(command: str) -> str:
-    return bash(f'chroot /mnt/depthboot-internal /bin/sh -c "{command}"')
+    return bash(f'chroot /mnt/internal /bin/sh -c "{command}"')
 
 
 if __name__ == "__main__":
@@ -183,5 +178,9 @@ if __name__ == "__main__":
 
     partition_and_flash()
     post_copy()
+    try:
+        bash("umount -fl /mnt/internal")
+    except subprocess.CalledProcessError:
+        pass  # doesn't matter if it fails
     print_header("Installed successfully to internal storage")
     print_header("You can now boot Depthboot from internal storage")
