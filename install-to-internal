@@ -98,7 +98,7 @@ def partition_and_flash():
     mkdir("/mnt/internal", create_parents=True)
     bash(f"mount {internal_name}p3 /mnt/internal")
     bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
-         "--exclude=/sys --exclude=/proc --exclude=/run / /mnt/internal")
+         "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
     bash("umount -f /mnt/internal")
 
 
