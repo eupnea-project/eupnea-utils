@@ -49,4 +49,4 @@ Not yet finished.
 
 ### update-scripts
 
-Updates the scripts to the latest version. Automatically triggered by eupnea-update every 24 hours.
+Old manual scripts updater.
