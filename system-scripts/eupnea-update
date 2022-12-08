@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import sys
+from urllib.request import urlopen
+from urllib.error import URLError
+
+sys.path.insert(0, "/usr/lib")
+from functions import *
+
+# This script checks if there is a new depthboot/EupneaOS version available and downloads the update script from GitHub.
+if __name__ == "__main__":
+    # Restart script as root
+    if not os.geteuid() == 0:
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
+    # Read eupnea settings file
+    with open("/etc/eupnea.json", "r") as file:
+        eupnea_json = json.load(file)
+
+    # Determine if the device is running depthboot or EupneaOS
+    try:
+        if eupnea_json["depthboot_version"]:
+            os_type = "depthboot-builder"
+    except KeyError:
+        if eupnea_json["eupnea_os_version"]:
+            os_type = "eupnea-os"
+
+    # Check if there is a new system version available on GitHub
+    try:
+        data_json = json.loads(urlopen(f"https://api.github.com/repos/eupnea-linux/{os_type}/releases/latest").read())
+    except URLError:
+        print_error("Could not connect to GitHub to check for updates. Please check your internet connection or "
+                    "try again later.")
+        exit(1)
+
+    # Print current version
+    try:
+        print_status("Current system version: " + eupnea_json["depthboot_version"])
+    except KeyError:
+        print_status("Current system version: " + eupnea_json["eupnea_os_version"])
+
+    # Determine local version
+    try:
+        current_version = eupnea_json["depthboot_version"]
+    except KeyError:
+        current_version = eupnea_json["eupnea_os_version"]
+
+    # Check local version against GitHub version
+    if not data_json["tag_name"] == current_version:
+        print_status("Downloading update script...")
+        # To prevent systems from skipping update versions, a file containing all release versions is downloaded and the
+        # next version is selected from that file instead of the latest release version from GitHub
+
+        # Download versions file
+        versions = urlopen(f"https://raw.githubusercontent.com/eupnea-linux/{os_type}/main/update-scripts/"
+                           f"versions.txt").readlines()
+        # Find current version in versions.txt and select the next one after it
+        new_version = versions.index(current_version) + 1
+
+        # Download correct update script from GitHub
+        urlretrieve(f"https://raw.githubusercontent.com/eupnea-linux/{os_type}/main/update-scripts/"
+                    f"update-to-{new_version}.py", filename="/tmp/eupnea-system-update/update-system.py")
+
+        # Execute update script
+        bash(f"python3 /tmp/eupnea-system-update/update-system.py")
+
+    else:
+        print_header("Depthboot is up to date.")
+        exit(0)

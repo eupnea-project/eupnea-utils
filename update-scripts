@@ -1,25 +1,16 @@
 #!/usr/bin/env python3
+
+# This is an old updater script that was in use before the Eupnea Project started hosting their own repos.
+# This script only exists to help update old v1.0 depthboot systems
+
 import json
 import os
 import sys
-import argparse
+from urllib.request import urlretrieve
 
 from functions import *
 
-
-# parse arguments from the cli.
-def process_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--dev", action="store_true", dest="dev", default=False,
-                        help="Use unstable scripts from dev branch")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
-    return parser.parse_args()
-
-
-# This script will update the postinstall scripts on an existing installation.
 if __name__ == "__main__":
-    args = process_args()
-
     # Restart script as root
     if not os.geteuid() == 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
@@ -27,51 +18,84 @@ if __name__ == "__main__":
 
     # delete old scripts tmp dir
     rmdir("/tmp/scripts-update")
+    # Make new tmp dir
+    mkdir("/tmp/scripts-update")
 
-    # download scripts from GitHub
-    print_status("Downloading scripts from github")
-    start_progress()  # start fake download progress
-    if args.dev:
-        # TODO: add dev branch
-        pass
-    else:
-        bash("git clone --depth=1 https://github.com/eupnea-linux/postinstall-scripts.git "
-             "/tmp/scripts-update/postinstall")
-        bash("git clone --depth=1 https://github.com/eupnea-linux/audio-scripts.git "
-             "/tmp/scripts-update/audio")
-    stop_progress()  # stop fake download progress
+    # delete old scripts
+    rmfile("/usr/local/bin/collect-logs")
+    rmfile("/usr/local/bin/functions.py")
+    rmfile("/usr/local/bin/install-ectool")
+    rmfile("/usr/local/bin/install-ectool.py")
+    rmfile("/usr/local/bin/install-to-internal")
+    rmfile("/usr/local/bin/manage-kernels")
+    rmfile("/usr/local/bin/modify-cmdline")
+    rmfile("/usr/local/bin/postinstall")
+    rmfile("/usr/local/bin/setup-zram")
+    rmfile("/usr/local/bin/update-scripts")
+    rmfile("/usr/local/bin/setup-audio")
 
-    # Copy new scripts to /usr/local/bin
-    print_status("Copying scripts and configs")
-    # Copy postinstall scripts only
-    for file in Path("/tmp/scripts-update/postinstall").iterdir():
+    # Disable old systemd services
+    bash("systemctl disable eupnea-postinstall.service")
+    bash("systemctl disable eupnea-update.timer")
+    bash("systemctl disable eupnea-update.service")
+    # Delete old systemd services
+    rmfile("/etc/systemd/system/eupnea-postinstall.service")
+    rmfile("/etc/systemd/system/eupnea-update.timer")
+    rmfile("/etc/systemd/system/eupnea-update.service")
+
+    # Remove scripts versions from eupnea.json
+    with open("/etc/eupnea.json", "r") as file:
+        eupnea_json = json.load(file)
+    del eupnea_json["postinstall_version"]
+    del eupnea_json["audio_version"]
+    # Write new json to /etc/eupnea.json
+    with open("/etc/eupnea.json", "w") as file:
+        json.dump(eupnea_json, file)
+
+    # install new scripts via package manager
+    match eupnea_json["distro_name"]:
+        case "pop-os" | "ubuntu" | "debian":
+            mkdir("/usr/local/share/keyrings", create_parents=True)
+            # download public key
+            urlretrieve(f"https://eupnea-linux.github.io/apt-repo/public.key",
+                        filename="/usr/local/share/keyrings/eupnea-utils.key")
+            with open("/etc/apt/sources.list.d/eupnea-utils.list", "w") as file:
+                file.write("deb [signed-by=/usr/local/share/keyrings/eupnea-utils.key] https://eupnea-linux.github.io/"
+                           "apt-repo/debian_ubuntu kinetic main")
+            bash("apt-get update -y")
+            bash("apt-get install eupnea-utils -y")
+        case "fedora":
+            bash("sudo dnf config-manager --add-repo https://eupnea-linux.github.io/rpm-repo/eupnea-utils.repo")
+            bash("sudo dnf update -y")
+            bash("sudo dnf install -y eupnea-utils")
+        case "arch":
+            urlretrieve(f"https://eupnea-linux.github.io/arch-repo/public_key.gpg", filename="/tmp/eupnea-utils.key")
+            bash("pacman-key --add /tmp/eupnea-utils.key")
+            bash("pacman-key --lsign-key 94EB01F3608D3940CE0F2A6D69E3E84DF85C8A12")
+            bash("pacman -Syy")
+            bash("pacman -S eupnea-utils")
+        case _:
+            print("Unsupported distro")
+            exit(1)
+
+    # Download new systemd services
+    try:
+        bash("git clone --depth=1 https://github.com/eupnea-linux/systemd-services "
+             "/tmp/scripts-update/systemd-services")
+    except subprocess.CalledProcessError:
+        print_error("Couldn't download systemd services. Check your internet connection and try again.")
+        exit(1)
+
+    # Install systemd services
+    print_status("Installing systemd services")
+    # Copy postinstall scripts
+    for file in Path("/tmp/scripts-update/systemd-services").iterdir():
         if file.is_file():
             if file.name == "LICENSE" or file.name == "README.md" or file.name == ".gitignore":
                 continue  # dont copy license, readme and gitignore
             else:
-                cpfile(file.absolute().as_posix(), f"/usr/local/bin/{file.name}")
-    # Copy postinstall configs
-    cpdir("/tmp/scripts-update/postinstall/configs", "/etc/eupnea")
+                cpfile(file.absolute().as_posix(), f"/etc/systemd/system/{file.name}")
 
-    # Copy audio script
-    cpfile("/tmp/scripts-update/audio/setup-audio", "/usr/local/bin/setup-audio")
-    # Copy audio configs
-    cpdir("/tmp/scripts-update/audio/configs", "/etc/eupnea")
-
-    # Set versions in /etc/eupnea.json
-    with open("/etc/eupnea.json", "r") as file:
-        eupnea_json = json.load(file)
-    # Read git latest commit hashes
-    with open("/tmp/scripts-update/postinstall/.git/refs/heads/main", "r") as file:
-        eupnea_json["postinstall_version"] = file.read()
-    with open("/tmp/scripts-update/audio/.git/refs/heads/main", "r") as file:
-        eupnea_json["audio_version"] = file.read()
-    # Write new versions to /etc/eupnea.json
-    with open("/etc/eupnea.json", "w") as file:
-        json.dump(eupnea_json, file)
-
-    # Re enable postinstall service
-    print_status("Enabling postinstall service")
+    # Enable new systemd services
     bash("systemctl enable eupnea-postinstall.service")
-
-    print_header("Scripts updated successfully")
+    bash("systemctl enable eupnea-update.timer")
