@@ -75,7 +75,7 @@ if __name__ == "__main__":
             bash("pacman -Syy")
             # add repo to pacman.conf
             with open("/etc/pacman.conf", "a") as file:
-                file.write("[eupnea-utils]\nServer = https://eupnea-linux.github.io/arch-repo/$arch\n")
+                file.write("[eupnea-utils]\nServer = https://eupnea-linux.github.io/arch-repo/$repo/os/any\n")
             bash("pacman -S eupnea-utils")
         case _:
             print("Unsupported distro")
