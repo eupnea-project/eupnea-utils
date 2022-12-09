@@ -74,6 +74,9 @@ if __name__ == "__main__":
             bash("pacman-key --lsign-key 94EB01F3608D3940CE0F2A6D69E3E84DF85C8A12")
             bash("pacman -Syy")
             bash("pacman -S eupnea-utils")
+            # add repo to pacman.conf
+            with open("/etc/pacman.conf", "a") as file:
+                file.write("[eupnea-utils]\nServer = https://eupnea-linux.github.io/arch-repo/$arch\n")
         case _:
             print("Unsupported distro")
             exit(1)
