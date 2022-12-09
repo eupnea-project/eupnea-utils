@@ -6,7 +6,7 @@ import sys
 from urllib.request import urlopen
 from urllib.error import URLError
 
-sys.path.insert(0, "/usr/lib")
+sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 # This script checks if there is a new depthboot/EupneaOS version available and downloads the update script from GitHub.

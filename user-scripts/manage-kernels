@@ -7,7 +7,7 @@ import argparse
 from urllib.error import URLError
 from urllib.request import urlretrieve, urlopen
 
-sys.path.insert(0, "/usr/lib")
+sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 
