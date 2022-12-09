@@ -16,6 +16,8 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
+    set_verbose(True)  # always run verbose
+
     # Read eupnea settings file
     with open("/etc/eupnea.json", "r") as file:
         eupnea_json = json.load(file)
