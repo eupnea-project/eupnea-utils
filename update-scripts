@@ -34,6 +34,9 @@ if __name__ == "__main__":
     rmfile("/usr/local/bin/update-scripts")
     rmfile("/usr/local/bin/setup-audio")
 
+    # Delete old configs
+    rmdir("/etc/eupnea")
+
     # Disable old systemd services
     bash("systemctl disable eupnea-postinstall.service")
     bash("systemctl disable eupnea-update.timer")
