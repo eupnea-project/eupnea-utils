@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # This is an old updater script that was in use before the Eupnea Project started hosting their own repos.
-# This script only exists to help update old v1.0 depthboot systems
+# This script only exists to update old v1.0 depthboot systems
 
 import json
 import os
@@ -57,31 +57,31 @@ if __name__ == "__main__":
     with open("/etc/eupnea.json", "w") as file:
         json.dump(eupnea_json, file)
 
-    # install new scripts via package manager
+    # install new scripts and "eupnea-system update" package via package manager
     match eupnea_json["distro_name"]:
         case "pop-os" | "ubuntu" | "debian":
             mkdir("/usr/local/share/keyrings", create_parents=True)
             # download public key
             urlretrieve(f"https://eupnea-linux.github.io/apt-repo/public.key",
-                        filename="/usr/local/share/keyrings/eupnea-utils.key")
+                        filename="/usr/local/share/keyrings/eupnea.key")
             with open("/etc/apt/sources.list.d/eupnea-utils.list", "w") as file:
-                file.write("deb [signed-by=/usr/local/share/keyrings/eupnea-utils.key] https://eupnea-linux.github.io/"
+                file.write("deb [signed-by=/usr/local/share/keyrings/eupnea.key] https://eupnea-linux.github.io/"
                            "apt-repo/debian_ubuntu kinetic main")
             bash("apt-get update -y")
-            bash("apt-get install eupnea-utils -y")
+            bash("apt-get install eupnea-utils eupnea-system -y")
         case "fedora":
-            bash("sudo dnf config-manager --add-repo https://eupnea-linux.github.io/rpm-repo/eupnea-utils.repo")
+            bash("sudo dnf config-manager --add-repo https://eupnea-linux.github.io/rpm-repo/eupnea.repo")
             bash("sudo dnf update -y")
-            bash("sudo dnf install -y eupnea-utils")
+            bash("sudo dnf install -y eupnea-utils eupnea-system")
         case "arch":
-            urlretrieve(f"https://eupnea-linux.github.io/arch-repo/public_key.gpg", filename="/tmp/eupnea-utils.key")
-            bash("pacman-key --add /tmp/eupnea-utils.key")
+            urlretrieve(f"https://eupnea-linux.github.io/arch-repo/public_key.gpg", filename="/tmp/eupnea.key")
+            bash("pacman-key --add /tmp/eupnea.key")
             bash("pacman-key --lsign-key 94EB01F3608D3940CE0F2A6D69E3E84DF85C8A12")
             # add repo to pacman.conf
             with open("/etc/pacman.conf", "a") as file:
-                file.write("[eupnea-utils]\nServer = https://eupnea-linux.github.io/arch-repo/$repo/os/any\n")
-            bash("pacman -Syy")
-            bash("pacman -S eupnea-utils")
+                file.write("[eupnea]\nServer = https://eupnea-linux.github.io/arch-repo/$repo/os/any\n")
+            bash("pacman --noconfirm -Syy")
+            bash("pacman -S --noconfirm eupnea-utils eupnea-system")
         case _:
             print("Unsupported distro")
             exit(1)
