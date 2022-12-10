@@ -85,25 +85,3 @@ if __name__ == "__main__":
         case _:
             print("Unsupported distro")
             exit(1)
-
-    # Download new systemd services
-    try:
-        bash("git clone --depth=1 https://github.com/eupnea-linux/systemd-services "
-             "/tmp/scripts-update/systemd-services")
-    except subprocess.CalledProcessError:
-        print_error("Couldn't download systemd services. Check your internet connection and try again.")
-        exit(1)
-
-    # Install systemd services
-    print_status("Installing systemd services")
-    # Copy postinstall scripts
-    for file in Path("/tmp/scripts-update/systemd-services").iterdir():
-        if file.is_file():
-            if file.name == "LICENSE" or file.name == "README.md" or file.name == ".gitignore":
-                continue  # dont copy license, readme and gitignore
-            else:
-                cpfile(file.absolute().as_posix(), f"/etc/systemd/system/{file.name}")
-
-    # Enable new systemd services
-    bash("systemctl enable eupnea-postinstall.service")
-    bash("systemctl enable eupnea-update.timer")
