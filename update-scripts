@@ -16,6 +16,8 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
+    set_verbose(True)  # always run verbose
+
     # delete old scripts tmp dir
     rmdir("/tmp/scripts-update")
     # Make new tmp dir
