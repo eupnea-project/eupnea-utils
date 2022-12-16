@@ -66,22 +66,22 @@ if __name__ == "__main__":
             # download public key
             urlretrieve(f"https://eupnea-linux.github.io/apt-repo/public.key",
                         filename="/usr/local/share/keyrings/eupnea.key")
-            with open("/etc/apt/sources.list.d/eupnea-utils.list", "w") as file:
+            with open("/etc/apt/sources.list.d/eupnea.list", "w") as file:
                 file.write("deb [signed-by=/usr/local/share/keyrings/eupnea.key] https://eupnea-linux.github.io/"
                            "apt-repo/debian_ubuntu kinetic main")
             bash("apt-get update -y")
             bash("apt-get install eupnea-utils eupnea-system -y")
         case "fedora":
-            bash("sudo dnf config-manager --add-repo https://eupnea-linux.github.io/rpm-repo/eupnea.repo")
-            bash("sudo dnf update -y")
-            bash("sudo dnf install -y eupnea-utils eupnea-system")
+            bash("dnf config-manager --add-repo https://eupnea-linux.github.io/rpm-repo/eupnea.repo")
+            bash("dnf update -y")
+            bash("dnf install -y eupnea-utils eupnea-system")
         case "arch":
             urlretrieve(f"https://eupnea-linux.github.io/arch-repo/public_key.gpg", filename="/tmp/eupnea.key")
             bash("pacman-key --add /tmp/eupnea.key")
             bash("pacman-key --lsign-key 94EB01F3608D3940CE0F2A6D69E3E84DF85C8A12")
             # add repo to pacman.conf
             with open("/etc/pacman.conf", "a") as file:
-                file.write("[eupnea]\nServer = https://eupnea-linux.github.io/arch-repo/$repo/os/any\n")
+                file.write("[eupnea]\nServer = https://eupnea-linux.github.io/arch-repo/repodata/$arch\n")
             bash("pacman --noconfirm -Syy")
             bash("pacman -S --noconfirm eupnea-utils eupnea-system")
         case _:
