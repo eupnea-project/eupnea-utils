@@ -70,7 +70,7 @@ if __name__ == "__main__":
                 file.write("deb [signed-by=/usr/local/share/keyrings/eupnea.key] https://eupnea-linux.github.io/"
                            "apt-repo/debian_ubuntu kinetic main")
             bash("apt-get update -y")
-            bash("apt-get install eupnea-utils eupnea-system -y")
+            bash("apt-get install -y eupnea-utils eupnea-system")
         case "fedora":
             bash("dnf config-manager --add-repo https://eupnea-linux.github.io/rpm-repo/eupnea.repo")
             bash("dnf update -y")
