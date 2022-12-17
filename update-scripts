@@ -83,7 +83,7 @@ if __name__ == "__main__":
             with open("/etc/pacman.conf", "a") as file:
                 file.write("[eupnea]\nServer = https://eupnea-linux.github.io/arch-repo/repodata/$arch\n")
             bash("pacman --noconfirm -Syy")
-            bash("pacman -S --noconfirm eupnea-utils eupnea-system")
+            bash("pacman -S --noconfirm eupnea-utils eupnea-system cgpt-vboot-utils")
         case _:
             print("Unsupported distro")
             exit(1)
