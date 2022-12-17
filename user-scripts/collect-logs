@@ -5,6 +5,7 @@ import sys
 import argparse
 import time
 
+sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 

@@ -3,6 +3,8 @@
 import os
 import sys
 import json
+
+sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 
@@ -87,8 +89,6 @@ if __name__ == "__main__":
     expand_rootfs()
     device_fixes()
     set_hostname()
-    # fix resolv.conf
-    bash("sudo systemctl restart systemd-resolved.service")
 
     # disable postinstall systemd service
     bash("systemctl disable eupnea-postinstall.service")

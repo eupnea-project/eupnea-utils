@@ -7,6 +7,7 @@ import argparse
 from urllib.error import URLError
 from urllib.request import urlretrieve, urlopen
 
+sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 
@@ -158,8 +159,6 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    install_kernel_packages()
-
     if args.backup:
         print_status("Backing up current kernel")
         rmfile("/opt/kernel-backup")  # remove old backup
@@ -167,7 +166,7 @@ if __name__ == "__main__":
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:len(partitions) - 1]  # get device "name"
         bash(f"dd if={partitions}1 of={partitions}2")
-        print_header("Backuped up kernel successfully")
+        print_header("Backed up kernel successfully")
         exit(0)
     if args.restore_backup:
         print_header("Restoring backed up kernel")

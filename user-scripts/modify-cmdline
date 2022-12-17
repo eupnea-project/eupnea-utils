@@ -3,6 +3,8 @@
 import os
 import sys
 import argparse
+
+sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 
@@ -30,8 +32,6 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    install_kernel_packages()
-
     print_status("Reading partition table")
     partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
     partitions = partitions[:len(partitions) - 1]  # get device "name"
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
         # Prompt user to edit cmdline with a cli text editor
         # Default to nano, fallback to vim or vi
-        # bash from functions.py doesn't work interactively -> use os.system
+        # "bash" from functions.py doesn't work interactively -> use os.system
         if path_exists("/usr/bin/nano"):
             os.system("nano /tmp/cmdline")
         elif path_exists("/usr/bin/vim"):
