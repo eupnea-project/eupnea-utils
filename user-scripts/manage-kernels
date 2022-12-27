@@ -52,7 +52,11 @@ def check_version() -> None:
             url = "https://api.github.com/repos/eupnea-linux/mainline-kernel/releases/latest"
         else:
             url = "https://api.github.com/repos/eupnea-linux/chromeos-kernel/releases/latest"
-        data_json = json.loads(urlopen(url).read())
+        try:
+            data_json = json.loads(urlopen(url).read())
+        except URLError:
+            print_error("Failed to check for new kernel version. Check your internet connection and try again.")
+            exit(1)
         if data_json["tag_name"] == stored_settings["kernel_version"]:
             print_status("Kernel is already up to date")
             exit(0)
