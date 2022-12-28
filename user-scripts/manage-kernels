@@ -75,33 +75,39 @@ def prepare_host() -> None:
 
 # download kernel files from GitHub
 def download_kernel() -> str:
-    # select correct link
-    if args.dev_build:
-        url = "https://github.com/eupnea-linux/chromeos-kernel/releases/download/dev-build/"
-    else:
-        url = "https://github.com/eupnea-linux/chromeos-kernel/releases/latest/download/"
-
     # download kernel files
     try:
         match selected_kernel_type:
             case "mainline":
                 print_status("Downloading mainline kernel")
-                url = "https://github.com/eupnea-linux/mainline-kernel/releases/latest/download/"
+                # select correct link
+                if args.dev_build:
+                    url = "https://github.com/eupnea-linux/mainline-kernel/releases/download/dev-build/"
+                else:
+                    url = "https://github.com/eupnea-linux/mainline-kernel/releases/latest/download/"
+
                 urlretrieve(f"{url}bzImage-stable", filename="/tmp/kernel-update/bzImage")
                 urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
                 urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
-            case "alt":
-                print_status("Downloading alt kernel")
-                urlretrieve(f"{url}bzImage-alt", filename="/tmp/kernel-update/bzImage")
-                urlretrieve(f"{url}modules-alt.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
-                urlretrieve(f"{url}headers-alt.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
             case "exp":
                 print_status("Downloading experimental 5.15 kernel")
+                # select correct link
+                if args.dev_build:
+                    url = "https://github.com/eupnea-linux/chromeos-kernel/releases/download/dev-build/"
+                else:
+                    url = "https://github.com/eupnea-linux/chromeos-kernel/releases/latest/download/"
+
                 urlretrieve(f"{url}bzImage-exp", filename="/tmp/kernel-update/bzImage")
                 urlretrieve(f"{url}modules-exp.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
                 urlretrieve(f"{url}headers-exp.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
             case "stable":
                 print_status("Downloading stable 5.10 kernel")
+                # select correct link
+                if args.dev_build:
+                    url = "https://github.com/eupnea-linux/chromeos-kernel/releases/download/dev-build/"
+                else:
+                    url = "https://github.com/eupnea-linux/chromeos-kernel/releases/latest/download/"
+
                 urlretrieve(f"{url}bzImage-stable", filename="/tmp/kernel-update/bzImage")
                 urlretrieve(f"{url}modules-stable.tar.xz", filename="/tmp/kernel-update/modules.tar.xz")
                 urlretrieve(f"{url}headers-stable.tar.xz", filename="/tmp/kernel-update/headers.tar.xz")
