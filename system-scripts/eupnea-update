@@ -12,7 +12,7 @@ from functions import *
 # This script checks if there is a new depthboot/EupneaOS version available and downloads the update script from GitHub.
 if __name__ == "__main__":
     # Restart script as root
-    if not os.geteuid() == 0:
+    if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         current_version = eupnea_json["eupnea_os_version"]
 
     # Check local version against GitHub version
-    if not data_json["tag_name"] == current_version:
+    if data_json["tag_name"] != current_version:
         print_status("Downloading update script...")
         # To prevent systems from skipping update versions, a file containing all release versions is downloaded and the
         # next version is selected from that file instead of the latest release version from GitHub
@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     f"update-to-{new_version}.py", filename="/tmp/eupnea-system-update/update-system.py")
 
         # Execute update script
-        bash(f"python3 /tmp/eupnea-system-update/update-system.py")
+        bash("python3 /tmp/eupnea-system-update/update-system.py")
 
     else:
         print_header("Depthboot is up to date.")

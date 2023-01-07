@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import contextlib
 import time
 
 sys.path.insert(0, "/usr/lib/eupnea")
@@ -58,10 +59,8 @@ def collect_audio_logs() -> None:
         sleep(10)
         bash("killall pulseaudio")
         # restart pulseaudio
-        try:
+        with contextlib.suppress(subprocess.CalledProcessError):
             bash("systemctl --user start pulseaudio")
-        except subprocess.CalledProcessError:
-            pass
     else:
         print_warning("Pulseaudio is not installed, skipping")
 
@@ -77,10 +76,8 @@ def collect_audio_logs() -> None:
         sleep(10)
         bash("killall pipewire")
         # restart pipewire
-        try:
+        with contextlib.suppress(subprocess.CalledProcessError):
             bash("systemctl --user start pipewire")
-        except subprocess.CalledProcessError:
-            pass
     else:
         print_warning("Pipewire is not installed, skipping")
 
@@ -128,7 +125,7 @@ if __name__ == "__main__":
     args = process_args()
 
     # Restart script as root
-    if not os.geteuid() == 0:
+    if os.geteuid() != 0:
         # pa logs need to be collected as non-root user
         set_verbose(True)
         try:
@@ -142,7 +139,7 @@ if __name__ == "__main__":
 
         # save username
         with open("/tmp/username", "w") as file:
-            file.write(bash("whoami").strip())  # get non root username. os.getlogin() seems to fail in chroots
+            file.write(bash("whoami").strip())  # get non-root username. os.getlogin() seems to fail in chroots
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import contextlib
 import os
 import sys
 import json
@@ -20,11 +21,8 @@ def process_args():
 def partition_and_flash():
     print_status("Preparing to install to internal storage")
     # unmount all internal partitions
-    try:
+    with contextlib.suppress(subprocess.CalledProcessError):
         bash(f"umount -lf {internal_name}*")
-    except subprocess.CalledProcessError:
-        pass
-
     # ask user for final confirmation
     input("\033[92m" + "Are you absolutely sure you want to wipe your internal drive and install Depthboot to it? Enter"
                        " to continue or Ctrl+C to abort" + "\033[0m")
@@ -100,7 +98,7 @@ if __name__ == "__main__":
     args = process_args()
 
     # Restart script as root
-    if not os.geteuid() == 0:
+    if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
@@ -119,13 +117,13 @@ if __name__ == "__main__":
         storage_array = []
         lsblk_out = bash("lsblk -nd -o NAME,MODEL,SIZE,TRAN").splitlines()
         for line in lsblk_out:
-            if not line.find("mmcblk") == -1 or not line.find("nvme") == -1:
+            if line.find("mmcblk") != -1 or line.find("nvme") != -1:
                 storage_array.append(line[:7].strip())  # get actual device name
                 break
-        if len(storage_array) == 0:
+        if not storage_array:
             print_error("No internal storage found... Please create an issue")
             exit(1)
-        elif not len(storage_array) == 1:
+        elif len(storage_array) != 1:
             for line in storage_array:
                 print(line)
             internal_name = input(
@@ -150,9 +148,7 @@ if __name__ == "__main__":
 
     partition_and_flash()
     post_copy()
-    try:
+    with contextlib.suppress(subprocess.CalledProcessError):
         bash("umount -fl /mnt/internal")
-    except subprocess.CalledProcessError:
-        pass  # doesn't matter if it fails
     print_header("Installed successfully to internal storage")
     print_header("You can now boot Depthboot from internal storage")

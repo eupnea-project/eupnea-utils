@@ -19,12 +19,10 @@ def expand_rootfs() -> None:
         if root_part[-1] == "p":  # internal drive / sd card has a "p" at the end
             bash(f"growpart {root_part[:-1]} 3")  # grow root partition
             bash(f"partprobe {root_part[:-1]}")  # reload partition table
-            bash(f"resize2fs {root_part}3")  # expand root partition
         else:  # usb drive
             bash(f"growpart {root_part} 3")  # grow root partition
             bash(f"partprobe {root_part}")  # reload partition table
-            bash(f"resize2fs {root_part}3")  # expand root partition
-
+        bash(f"resize2fs {root_part}3")  # expand root partition
         # set install type to direct to prevent postinstall from expanding again
         eupnea_settings["install_type"] = "expanded-image"
         with open("/etc/eupnea.json", "w") as file:
@@ -70,7 +68,7 @@ def set_hostname() -> None:
 
 if __name__ == "__main__":
     # Elevate script to root
-    if not os.geteuid() == 0:
+    if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 

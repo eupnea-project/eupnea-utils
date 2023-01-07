@@ -132,10 +132,10 @@ def flash_kernel() -> None:
     # Extract modules
     print_status("Extracting kernel modules")
     # Extract modules to temporary location
-    bash(f"tar xpf /tmp/kernel-update/modules.tar.xz -C /tmp/kernel-update/modules --checkpoint=.10000")
+    bash("tar xpf /tmp/kernel-update/modules.tar.xz -C /tmp/kernel-update/modules --checkpoint=.10000")
     print("")  # break line after tar
     # read kernel modules version
-    new_modules_version = bash(f"ls /tmp/kernel-update/modules").strip()  # get new modules dir name
+    new_modules_version = bash("ls /tmp/kernel-update/modules").strip()  # get new modules dir name
     rmdir(f"/lib/modules/{new_modules_version}")  # remove all old modules
     # move new modules to /lib/modules
     bash(f"mv /tmp/kernel-update/modules/{new_modules_version} /lib/modules/{new_modules_version}")
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     args = process_args()
 
     # Restart script as root
-    if not os.geteuid() == 0:
+    if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         rmfile("/opt/kernel-backup")  # remove old backup
         print_status("Reading partition table")
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-        partitions = partitions[:len(partitions) - 1]  # get device "name"
+        partitions = partitions[:-1]
         bash(f"dd if={partitions}1 of={partitions}2")
         print_header("Backed up kernel successfully")
         exit(0)
@@ -182,7 +182,7 @@ if __name__ == "__main__":
         print_header("Restoring backed up kernel")
         print_status("Reading partition table")
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-        partitions = partitions[:len(partitions) - 1]  # get device "name"
+        partitions = partitions[:-1]
         # Restore kernel
         bash(f"dd if={partitions}2 of={partitions}1")
         print_header("Restored kernel successfully! Please reboot to use the restored kernel")
@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
     # read root partition mount
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
-    device = root_part[:len(root_part) - 1]  # get device "name"
+    device = root_part[:-1] # get device "name"
 
     prepare_host()
     if args.local_path is None:  # Download files from GitHub
@@ -255,10 +255,7 @@ if __name__ == "__main__":
         updated_settings = stored_settings
         updated_settings["kernel_type"] = selected_kernel_type
         updated_settings["kernel_version"] = new_kernel_version
-        if args.dev_build:
-            updated_settings["dev_build"] = True
-        else:
-            updated_settings["dev_build"] = False
+        updated_settings["dev_build"] = bool(args.dev_build)
         with open("/etc/eupnea.json", "w") as file:
             json.dump(updated_settings, file)
 

@@ -28,13 +28,13 @@ if __name__ == "__main__":
         exit(1)
 
     # Restart script as root
-    if not os.geteuid() == 0:
+    if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
     print_status("Reading partition table")
     partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-    partitions = partitions[:len(partitions) - 1]  # get device "name"
+    partitions = partitions[:-1] # get device name
     if args.reset:
         print_status("Resetting to default command line")
         temp_cmdline = "console=tty1 root=PARTUUID=insert_partuuid i915.modeset=1 rootwait rw fbcon=logo-pos:center," \
