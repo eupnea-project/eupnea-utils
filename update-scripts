@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # This is an old updater script that was in use before the Eupnea Project started hosting their own repos.
-# This script only exists to update old v1.0 depthboot systems
+# This script only exists to update old v1.0 depthboot systems to v1.1
 
 import json
 import os
