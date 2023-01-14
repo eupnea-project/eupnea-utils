@@ -1,0 +1,13 @@
+[Unit]
+Description=Eupnea postinstall script
+# Further description:
+# This script is only run on the first boot of Deptboot/EupneaOS.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/eupnea/eupnea-postinstall
+RemainAfterExit=false
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
