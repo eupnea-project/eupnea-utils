@@ -14,16 +14,14 @@ def expand_rootfs() -> None:
         eupnea_settings = json.load(file)
     if eupnea_settings["install_type"] == "image":  # only resize on image installs
         # read root partition mount
-        root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
-        root_part = root_part[:-1]  # get device "name"
-        if root_part[-1] == "p":  # internal drive / sd card has a "p" at the end
-            bash(f"growpart {root_part[:-1]} 3")  # grow root partition
-            bash(f"partprobe {root_part[:-1]}")  # reload partition table
-        else:  # usb drive
-            bash(f"growpart {root_part} 3")  # grow root partition
-            bash(f"partprobe {root_part}")  # reload partition table
-        bash(f"resize2fs {root_part}3")  # expand root partition
-        # set install type to direct to prevent postinstall from expanding again
+        device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
+        # resize partition
+        bash(f'echo ", +" | sfdisk --force -N 3 {device[:-1] if device.endswith("p") else device}')
+        # inform kernel of new partition
+        bash("partprobe")
+        # resize filesystem to new partition
+        bash(f"resize2fs {device}3")
+        # set install type to direct
         eupnea_settings["install_type"] = "expanded-image"
         with open("/etc/eupnea.json", "w") as file:
             json.dump(eupnea_settings, file)
