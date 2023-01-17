@@ -47,6 +47,10 @@ def collect_audio_logs() -> None:
             f.write(bash("LANG=C alsa-info.sh --stdout --with-aplay --with-amixer --with-alsactl --with-configs "
                          "--with-devices --with-packages"))
 
+    print_status("Running alsaucm")
+    with open("/tmp/logs-eupnea/alsaucm.log", "w") as f:
+        f.write(bash("strace alsaucm reload"))
+
     print_status("Collecting pulseaudio logs")
     # Check if pulseaudio is installed
     if path_exists("/usr/bin/pulseaudio"):
