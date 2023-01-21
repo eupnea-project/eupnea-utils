@@ -48,8 +48,11 @@ def collect_audio_logs() -> None:
                          "--with-devices --with-packages"))
 
     print_status("Running alsaucm")
-    with open("/tmp/logs-eupnea/alsaucm.log", "w") as f:
-        f.write(bash("strace alsaucm reload"))
+    try:
+        with open("/tmp/logs-eupnea/alsaucm.log", "w") as f:
+            f.write(bash("strace alsaucm reload"))
+    except subprocess.CalledProcessError:
+        print_error("Strace failed, check if strace is installed")
 
     print_status("Collecting pulseaudio logs")
     # Check if pulseaudio is installed
