@@ -39,7 +39,7 @@ def partition_and_flash():
     bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # set kernel flags
     bash(f"cgpt add -i 2 -t kernel -S 1 -T 5 -P 1 {internal_name}")  # set reserve kernel flags
 
-    # get uuid of rootfs partition
+    bash("partprobe")  # update kernel partition table
     rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {internal_name}p3")
 
     # read current cmdline and update its partuuid
