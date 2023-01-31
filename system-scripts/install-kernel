@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import sys
-import json
-import argparse
 
 sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
@@ -12,8 +11,10 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kernel-path", required=True, dest="kernel_path",
-                        help="Full path to kernel image to be installed. Example: /tmp/bzImage-new")
+    parser.add_argument("kernel_path", help="Full path to kernel image to be installed. "
+                                            "Usage example: install-kernel /tmp/bzImage-new")
+    parser.add_argument("--kernel-flags", dest="kernel_flags", default="/proc/cmdline",
+                        help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path.")
     parser.add_argument("--partition", dest="partition", default=1, help="Partition to flash kernel to. Defaults to 1")
     return parser.parse_args()
 
@@ -26,14 +27,17 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    # prepare system
+    # Exit if running from inside a chroot
+    if bash("ls -di /") != "2 /":
+        print_warning("Chroot detected: Skipping kernel flashing, please flash manually.")
+        exit(0)
+
+    # make tmp location
     rmdir("/tmp/kernel-update")  # delete old files
     mkdir("/tmp/kernel-update")
 
     cpfile(args.kernel_path, "/tmp/kernel-update/bzImage")  # Copy image to temporary location
-    cpfile("/proc/cmdline", "/tmp/kernel-update/kernel.flags")  # Reuse current kernel flags
-    # read root partition mount
-    root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
+    cpfile(args.kernel_version, "/tmp/kernel-update/kernel-flags")  # Write kernel flags to temporary location
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
@@ -43,12 +47,9 @@ if __name__ == "__main__":
 
     print_status("Flashing kernel")
     # get device "name"
+    root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
     device = root_part[:-1]
     bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}{args.partition}")
 
-    # if on Fedora, the modules need to be relabeled, otherwise SELinux will not allow loading them
-    with open("/etc/eupnea.json", "r") as file:
-        stored_settings = json.load(file)
-    if stored_settings["distro_name"] == "fedora":
-        print_status("Relabeling modules")
-        bash("fixfiles restore /lib/modules")
+    rmdir("/tmp/kernel-update")  # delete files
+    rmdir("/tmp/eupnea-kernel-update")  # delete package files
