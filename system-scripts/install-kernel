@@ -37,7 +37,7 @@ if __name__ == "__main__":
     mkdir("/tmp/kernel-update")
 
     cpfile(args.kernel_path, "/tmp/kernel-update/bzImage")  # Copy image to temporary location
-    cpfile(args.kernel_version, "/tmp/kernel-update/kernel-flags")  # Write kernel flags to temporary location
+    cpfile(args.kernel_flags, "/tmp/kernel-update/kernel.flags")  # Write kernel flags to temporary location
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
