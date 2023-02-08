@@ -39,6 +39,12 @@ if __name__ == "__main__":
     cpfile(args.kernel_path, "/tmp/kernel-update/bzImage")  # Copy image to temporary location
     cpfile(args.kernel_flags, "/tmp/kernel-update/kernel.flags")  # Write kernel flags to temporary location
 
+    # Depthcharge automatically adds cros_secure to the kernel flags -> remove it
+    with open("/tmp/kernel-update/kernel.flags", "r") as f:
+        flags = f.read().replace("cros_secure", "").strip()
+    with open("/tmp/kernel-update/kernel.flags", "w") as f:
+        f.write(flags)
+
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
          "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-update/kernel.flags "
