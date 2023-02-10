@@ -18,8 +18,11 @@ from functions import *
 def process_args():
     parser = argparse.ArgumentParser()
     # list of packages to be installed
-    parser.add_argument("package_list", nargs="+", help="List of packages to be installed. Packages that need to be "
-                                                        "deleted should be prefixed with '-'")
+    parser.add_argument("package_list", nargs="+", help="List of packages to be installed separated by a space."
+                                                        " Packages that need to be deleted should be prefixed with '-'")
+    parser.add_argument("--distro-only", default="None", help="Exclusive distros on which the packages should be "
+                                                              "installed. Comma-separated, without spaces."
+                                                              " Other distros will be ignored.")
     return parser.parse_args()
 
 
@@ -35,7 +38,10 @@ def parse_package_list(packages_raw: list) -> Tuple[list, list]:
 
 
 if __name__ == "__main__":
+    set_verbose(True)
     args = process_args()
+    distro_only_list = args.distro_only.split(",")
+    print(distro_only_list)
     temp_output = parse_package_list(args.package_list)
 
     if len(temp_output[0]) == 0 and len(temp_output[1]) == 0:
@@ -43,7 +49,11 @@ if __name__ == "__main__":
 
     # Read distro name
     with open("/etc/eupnea.json") as f:
-        distro_name = json.load(f)["distro"]
+       distro_name = json.load(f)["distro"]
+    # do not install packages if distro is not the one specified
+    if distro_name not in distro_only_list:
+        print(f"Skipping package installation for {distro_name}.")
+        exit(0)
     match distro_name:
         case "debian" | "ubuntu" | "pop-os":
             pkgmngr_sync = "apt-get update -y"
@@ -58,13 +68,12 @@ if __name__ == "__main__":
             pkgmngr_install = "pacman -S --noconfirm "
             pkgmngr_remove = "pacman -R --noconfirm "
 
-    # Wait for apt to be ready
+    # Wait for package manager to be ready
     while True:
         try:
             bash(pkgmngr_sync)
         except subprocess.CalledProcessError:
             sleep(5)
-
             continue
         break
 
