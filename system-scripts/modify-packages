@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     # Read distro name
     with open("/etc/eupnea.json") as f:
-        distro_name = json.load(f)["distro"]
+        distro_name = json.load(f)["distro_name"]
     # do not install packages if distro is not the one specified
     if distro_name not in distro_only_list:
         print(f"Skipping package installation for {distro_name}.")
