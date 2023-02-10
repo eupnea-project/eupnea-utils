@@ -7,7 +7,6 @@
 
 import argparse
 import json
-import os
 import sys
 from typing import Tuple
 
@@ -42,10 +41,10 @@ if __name__ == "__main__":
     set_verbose(True)
     args = process_args()
     distro_only_list = args.distro_only.split(",")
-    print(distro_only_list)
     temp_output = parse_package_list(args.package_list)
 
     if len(temp_output[0]) == 0 and len(temp_output[1]) == 0:
+        print_warning("No packages specified.")
         exit(0)
 
     # Read distro name
@@ -73,7 +72,7 @@ if __name__ == "__main__":
     while True:
         try:
             bash(pkgmngr_sync)
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError:  # will fail if there is a package manager lock file
             sleep(5)
             continue
         break
@@ -86,5 +85,7 @@ if __name__ == "__main__":
     if len(temp_output[1]) > 0:
         print(pkgmngr_remove + " ".join(temp_output[1]))
 
+    # Stop systemd service
+    bash("systemctl stop eupnea-update.service")
     # remove systemd service
     rmfile("/etc/systemd/system/eupnea-update.service")
