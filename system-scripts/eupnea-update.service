@@ -1,0 +1,10 @@
+[Unit]
+Description=Eupnea update script
+# Further description:
+# This script is triggered by a eupnea-system update.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/eupnea/modify-packages insert_package_list
+RemainAfterExit=false
+StandardOutput=journal
