@@ -20,9 +20,6 @@ def process_args():
     # list of packages to be installed
     parser.add_argument("package_list", nargs="+", help="List of packages to be installed separated by a space."
                                                         " Packages that need to be deleted should be prefixed with '-'")
-    parser.add_argument("--distro-only", default="None", help="Exclusive distros on which the packages should be "
-                                                              "installed. Comma-separated, without spaces."
-                                                              " Other distros will be ignored.")
     return parser.parse_args()
 
 
@@ -51,10 +48,6 @@ if __name__ == "__main__":
     # Read distro name
     with open("/etc/eupnea.json") as f:
         distro_name = json.load(f)["distro_name"]
-    # do not install packages if distro is not the one specified
-    if distro_name not in distro_only_list:
-        print(f"Skipping package installation for {distro_name}.")
-        exit(0)
     match distro_name:
         case "debian" | "ubuntu" | "pop-os":
             # check if lock file is in use with fuser
