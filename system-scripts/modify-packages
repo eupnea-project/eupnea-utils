@@ -57,7 +57,9 @@ if __name__ == "__main__":
         exit(0)
     match distro_name:
         case "debian" | "ubuntu" | "pop-os":
-            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock"  # check if lock file is in use
+            # check if lock file is in use with fuser
+            # fuser returns 1 if no process is using the file -> ignore return code
+            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock || true"
             pkgmngr_install = "apt-get install -y "
             pkgmngr_remove = "apt-get purge -y "
         case "fedora":
