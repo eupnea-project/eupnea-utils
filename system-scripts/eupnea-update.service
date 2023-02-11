@@ -4,7 +4,7 @@ Description=Eupnea update script
 # This script is triggered by a eupnea-system update.
 
 [Service]
-Type=simple
+Type=oneshot
 # insert_package_list is replaced by the eupnea-update package with the appropriate package list
 ExecStart=/usr/lib/eupnea/modify-packages insert_package_list
 RemainAfterExit=false
