@@ -50,9 +50,9 @@ if __name__ == "__main__":
         distro_name = json.load(f)["distro_name"]
     match distro_name:
         case "debian" | "ubuntu" | "pop-os":
-            # check if lock file is in use with fuser
+            # check if lock files are in use with fuser
             # fuser returns 1 if no process is using the file -> ignore return code
-            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock || true"
+            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock* || true"
             pkgmngr_install = "apt-get install -y "
             pkgmngr_remove = "apt-get purge -y "
         case "fedora":
