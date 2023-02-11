@@ -57,23 +57,22 @@ if __name__ == "__main__":
         exit(0)
     match distro_name:
         case "debian" | "ubuntu" | "pop-os":
-            pkgmngr_sync = "apt-get update -y"
+            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock"  # check if lock file is in use
             pkgmngr_install = "apt-get install -y "
             pkgmngr_remove = "apt-get purge -y "
         case "fedora":
-            pkgmngr_sync = "dnf update -y --refresh"
+            # TODO: Update path for dnf5
+            pkgmngr_lock_check = "ls -a /var/cache/dnf/ | grep pid"  # dnf has multiple lock files
             pkgmngr_install = "dnf install -y "
             pkgmngr_remove = "dnf remove -y "
         case "arch":
-            pkgmngr_sync = "pacman -Syy --noconfirm"
+            pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck"  # pacman deletes lock files -> check if it exists
             pkgmngr_install = "pacman -S --noconfirm "
             pkgmngr_remove = "pacman -R --noconfirm "
 
     print_status("Waiting for package manager to be ready")
     while True:
-        try:
-            bash(pkgmngr_sync)
-        except subprocess.CalledProcessError:  # will fail if there is a package manager lock file
+        if bash(pkgmngr_lock_check) != "":
             print_status("Package manager not ready. Retrying in 5 seconds.")
             sleep(5)
             continue
