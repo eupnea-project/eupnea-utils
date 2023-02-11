@@ -41,6 +41,7 @@ if __name__ == "__main__":
     set_verbose(True)
     args = process_args()
     distro_only_list = args.distro_only.split(",")
+    print_status("Processing package list")
     temp_output = parse_package_list(args.package_list)
 
     if len(temp_output[0]) == 0 and len(temp_output[1]) == 0:
@@ -68,24 +69,27 @@ if __name__ == "__main__":
             pkgmngr_install = "pacman -S --noconfirm "
             pkgmngr_remove = "pacman -R --noconfirm "
 
-    # Wait for package manager to be ready
+    print_status("Waiting for package manager to be ready")
     while True:
         try:
             bash(pkgmngr_sync)
         except subprocess.CalledProcessError:  # will fail if there is a package manager lock file
+            print_status("Package manager not ready. Retrying in 5 seconds.")
             sleep(5)
             continue
         break
 
-    # install packages
     if len(temp_output[0]) > 0:
-        print(pkgmngr_install + " ".join(temp_output[0]))
+        print_status("Installing packages")
+        bash(pkgmngr_install + " ".join(temp_output[0]))
 
-    # remove packages
     if len(temp_output[1]) > 0:
-        print(pkgmngr_remove + " ".join(temp_output[1]))
+        print_status("Removing packages")
+        bash(pkgmngr_remove + " ".join(temp_output[1]))
 
+    print_status("Exiting")
     # Stop systemd service
     bash("systemctl stop eupnea-update.service")
     # remove systemd service
     rmfile("/etc/systemd/system/eupnea-update.service")
+    exit(0)
