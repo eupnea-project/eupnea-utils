@@ -87,9 +87,7 @@ if __name__ == "__main__":
         print_status("Removing packages")
         bash(pkgmngr_remove + " ".join(temp_output[1]))
 
-    print_status("Exiting")
-    # Stop systemd service
-    bash("systemctl stop eupnea-update.service")
+    print_status("Deleting service file")
     # remove systemd service
     rmfile("/etc/systemd/system/eupnea-update.service")
     exit(0)
