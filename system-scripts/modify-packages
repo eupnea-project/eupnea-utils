@@ -37,7 +37,6 @@ def parse_package_list(packages_raw: list) -> Tuple[list, list]:
 if __name__ == "__main__":
     set_verbose(True)
     args = process_args()
-    distro_only_list = args.distro_only.split(",")
     print_status("Processing package list")
     temp_output = parse_package_list(args.package_list)
 
