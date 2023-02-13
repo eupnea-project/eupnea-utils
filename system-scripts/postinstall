@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import contextlib
 import os
 import sys
 import json
@@ -15,8 +15,9 @@ def expand_rootfs() -> None:
     if eupnea_settings["install_type"] == "image":  # only resize on image installs
         # Gnome auto-mounts internal drives on boot, which might cause partprobe to say:
         # Error: Can't have overlapping partitions.
-        # -> unmount internal drive before resizing. Linux won't let the booted device be unmounted
-        bash("umount -a")
+        # -> unmount internal drive before resizing
+        with contextlib.suppress(subprocess.CalledProcessError):  # Linux will obviously fail to unmount the boot drive
+            bash("umount -a")
         # read root partition mount
         device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
         # resize partition
