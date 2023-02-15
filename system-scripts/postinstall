@@ -19,7 +19,10 @@ def expand_rootfs() -> None:
         # inform kernel of new partition
         # Only partprobe the currently booted drive, as otherwise partprobe might throw
         # Error: Can't have overlapping partitions.
-        bash(f"partprobe {device}")
+        if device.startswith("/dev/sda"):
+            bash(f"partprobe {device}")
+        else:
+            bash(f"partprobe {device[:-1]}")
         # resize filesystem to new partition
         bash(f"resize2fs {device}3")
         # set install type to direct
