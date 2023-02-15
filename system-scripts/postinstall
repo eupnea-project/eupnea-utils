@@ -19,7 +19,7 @@ def expand_rootfs() -> None:
         # inform kernel of new partition
         # Only partprobe the currently booted drive, as otherwise partprobe might throw
         # Error: Can't have overlapping partitions.
-        if device.startswith("/dev/sda"):
+        if device.startswith("/dev/sd"):  # for usb drives that start with /dev/sdX
             bash(f"partprobe {device}")
         else:
             bash(f"partprobe {device[:-1]}")
