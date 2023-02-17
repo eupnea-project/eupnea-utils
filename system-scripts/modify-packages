@@ -60,7 +60,7 @@ if __name__ == "__main__":
             pkgmngr_install = "dnf install -y "
             pkgmngr_remove = "dnf remove -y "
         case "arch":
-            pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck"  # pacman deletes lock files -> check if it exists
+            pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck || true"  # pacman deletes lock files -> check if it exists
             pkgmngr_install = "pacman -S --noconfirm "
             pkgmngr_remove = "pacman -R --noconfirm "
 
