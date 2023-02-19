@@ -1,11 +1,10 @@
 [Unit]
-Description=Eupnea update script
+Description=Eupnea update package installer
 # Further description:
-# This script is triggered by a eupnea-system update.
+# This script is created and triggered by a eupnea-system update.
 
 [Service]
 Type=oneshot
-# insert_package_list is replaced by the eupnea-update package with the appropriate package list
-ExecStart=/usr/lib/eupnea/modify-packages insert_package_list
+ExecStart=/usr/lib/eupnea/modify-packages
 RemainAfterExit=false
 StandardOutput=journal

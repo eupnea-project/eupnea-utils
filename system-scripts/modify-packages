@@ -3,66 +3,29 @@
 
 # Sometimes the system update script needs to install/remove a package from a eupnea system. This is not possible
 # from within a postinstall script of a package. Therefor a systemd updater script is run, which will wait for the
-# packagemanager to finish and then install/remove the necessary packages.
+# package-manager to finish and then install/remove the necessary packages.
 
-import argparse
+# This script will read all files from /var/tmp/eupnea-updates and install/remove the packages specified in those files.
+# The files will be executed in an alphanumerical order. The files will be deleted after they have been executed.
+# The name of the files should be something like v1.1.0.txt, v1.1.1.txt, v1.1.2.txt, etc.
+# The files should be a plain text file with all packages on one line. Only the first line will be read.
+
 import json
+import os
 import sys
-from typing import Tuple
 
 sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 
-# parse arguments from the cli.
-def process_args():
-    parser = argparse.ArgumentParser()
-    # list of packages to be installed
-    parser.add_argument("package_list", nargs="+", help="List of packages to be installed separated by a space."
-                                                        " Packages that need to be deleted should be prefixed with '-'")
-    return parser.parse_args()
-
-
-def parse_package_list(packages_raw: list) -> Tuple[list, list]:
+def modify_packages(packages_raw: str) -> None:
     packages_remove = []
     packages_install = []
-    for package in packages_raw:
+    for package in packages_raw.split(" "):
         if package.startswith("-"):
             packages_remove.append(package[1:])
         else:
             packages_install.append(package)
-    return packages_install, packages_remove
-
-
-if __name__ == "__main__":
-    set_verbose(True)
-    args = process_args()
-    print_status("Processing package list")
-    temp_output = parse_package_list(args.package_list)
-
-    if len(temp_output[0]) == 0 and len(temp_output[1]) == 0:
-        print_warning("No packages specified.")
-        exit(0)
-
-    # Read distro name
-    with open("/etc/eupnea.json") as f:
-        distro_name = json.load(f)["distro_name"]
-    match distro_name:
-        case "debian" | "ubuntu" | "pop-os":
-            # check if lock files are in use with fuser
-            # fuser returns 1 if no process is using the file -> ignore return code
-            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock* || true"
-            pkgmngr_install = "apt-get install -y "
-            pkgmngr_remove = "apt-get purge -y "
-        case "fedora":
-            # TODO: Update path for dnf5
-            pkgmngr_lock_check = "ls -a /var/cache/dnf/ | grep pid"  # dnf has multiple lock files
-            pkgmngr_install = "dnf install -y "
-            pkgmngr_remove = "dnf remove -y "
-        case "arch":
-            pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck || true"  # pacman deletes lock files -> check if it exists
-            pkgmngr_install = "pacman -S --noconfirm "
-            pkgmngr_remove = "pacman -R --noconfirm "
 
     print_status("Waiting for package manager to be ready")
     while True:
@@ -72,15 +35,55 @@ if __name__ == "__main__":
             continue
         break
 
-    if len(temp_output[0]) > 0:
+    if packages_install:  # if list is not empty
         print_status("Installing packages")
-        bash(pkgmngr_install + " ".join(temp_output[0]))
+        bash(pkgmngr_install + " ".join(packages_install))
 
-    if len(temp_output[1]) > 0:
+    if len(packages_remove):  # if list is not empty
         print_status("Removing packages")
-        bash(pkgmngr_remove + " ".join(temp_output[1]))
+        bash(pkgmngr_remove + " ".join(packages_remove))
+
+
+if __name__ == "__main__":
+    set_verbose(True)
+
+    # Read distro name and set package manager commands
+    with open("/etc/eupnea.json") as f:
+        distro_name = json.load(f)["distro_name"]
+    match distro_name:
+        case "debian" | "ubuntu" | "pop-os":
+            # check if lock files are in use with fuser
+            # returns 1 if no process is using the file -> ignore return code
+            pkgmngr_lock_check = "fuser /var/lib/dpkg/lock* || true"
+            pkgmngr_install = "apt-get install -y "
+            pkgmngr_remove = "apt-get purge -y "
+        case "fedora":
+            # TODO: Update path for dnf5
+            pkgmngr_lock_check = "ls -a /var/cache/dnf/ | grep pid  || true"  # dnf has multiple lock files
+            pkgmngr_install = "dnf install -y "
+            pkgmngr_remove = "dnf remove -y "
+        case "arch":
+            pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck || true"  # pacman deletes lock files -> check if it exists
+            pkgmngr_install = "pacman -S --noconfirm "
+            pkgmngr_remove = "pacman -R --noconfirm "
+
+    # Start main script loop
+    print_status("Reading update files from /var/tmp/eupnea-updates")
+    for file in sorted(os.listdir("/var/tmp/eupnea-updates")):
+        if file.endswith(".txt"):
+            print_status(f"Processing file {file}")
+            with open(f"/var/tmp/eupnea-updates/{file}") as f:
+                package_list = f.readlines()[0]  # only read first line
+            if package_list in ["", " ", "\n"]:  # check if file is empty
+                print_warning(f"No packages specified in /var/tmp/eupnea-updates/{file}")
+                continue
+            # Modify packages
+            modify_packages(package_list)
+            # Delete file after successful execution
+            rmfile(f"/var/tmp/eupnea-updates/{file}")
 
     print_status("Deleting service file")
     # remove systemd service
     rmfile("/etc/systemd/system/eupnea-update.service")
+    print_status("Exiting script")
     exit(0)
