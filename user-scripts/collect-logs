@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 import argparse
 import contextlib
+import os
+import sys
 import time
 
 sys.path.insert(0, "/usr/lib/eupnea")
@@ -31,7 +31,9 @@ def collect_audio_logs() -> None:
 
     def run_pipewire() -> None:
         try:
-            bash("LANG=C /usr/bin/pipewire -vvvv > /tmp/logs-eupnea/pipewire_verbose.log 2>&1")
+            # do the command 4 times
+            for i in range(4):
+                bash(f"LANG=C /usr/bin/spa-acp-tool -c {i} -vvvv info > /tmp/logs-eupnea/pipewire_verbose_{i}.log 2>&1")
         except subprocess.CalledProcessError:
             print_warning("Pipewire exited with an error")
             with open("/tmp/logs-eupnea/pipewire_fail.log", "w") as file:
@@ -54,6 +56,9 @@ def collect_audio_logs() -> None:
     except subprocess.CalledProcessError:
         print_error("Strace failed, check if strace is installed")
 
+    pulseaudio_installed = True
+    pipewire_installed = True
+
     print_status("Collecting pulseaudio logs")
     # Check if pulseaudio is installed
     if path_exists("/usr/bin/pulseaudio"):
@@ -69,6 +74,7 @@ def collect_audio_logs() -> None:
         with contextlib.suppress(subprocess.CalledProcessError):
             bash("systemctl --user start pulseaudio")
     else:
+        pulseaudio_installed = False
         print_warning("Pulseaudio is not installed, skipping")
 
     print_status("Collecting pipewire logs")
@@ -86,7 +92,12 @@ def collect_audio_logs() -> None:
         with contextlib.suppress(subprocess.CalledProcessError):
             bash("systemctl --user start pipewire")
     else:
+        pipewire_installed = False
         print_warning("Pipewire is not installed, skipping")
+
+    if not pulseaudio_installed and not pipewire_installed:
+        print_error("No audio server found!!!!!")
+        print_error("Please report this issue on GitHub/Revolt/Discord")
 
 
 def collect_system_logs() -> None:
