@@ -4,7 +4,7 @@ Description=Eupnea update package installer
 # This script is created and triggered by a eupnea-system update.
 
 [Service]
-Type=oneshot
+Type=simple
 ExecStart=/usr/lib/eupnea/modify-packages
 RemainAfterExit=false
 StandardOutput=journal
