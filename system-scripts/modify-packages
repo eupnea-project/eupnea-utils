@@ -27,6 +27,10 @@ def modify_packages(packages_raw: str) -> None:
         else:
             packages_install.append(package)
 
+    if not len(packages_install) and not len(packages_remove):
+        print_warning("No packages to install or remove")
+        return  # if no packages are to be installed or removed
+
     print_status("Waiting for package manager to be ready")
     while True:
         if bash(pkgmngr_lock_check) != "":
