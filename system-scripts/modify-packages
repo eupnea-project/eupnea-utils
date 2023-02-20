@@ -82,8 +82,5 @@ if __name__ == "__main__":
             # Delete file after successful execution
             rmfile(f"/var/tmp/eupnea-updates/{file}")
 
-    print_status("Deleting service file")
-    # remove systemd service
-    rmfile("/etc/systemd/system/eupnea-update.service")
     print_status("Exiting script")
     exit(0)
