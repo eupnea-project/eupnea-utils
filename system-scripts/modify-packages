@@ -29,7 +29,7 @@ def modify_packages(packages_raw: str) -> None:
 
     if not len(packages_install) and not len(packages_remove):
         print_warning("No packages to install or remove")
-        return  # if no packages are to be installed or removed
+        return  # if no packages are to be installed or removed; should not really happen
 
     print_status("Waiting for package manager to be ready")
     while True:
@@ -39,13 +39,13 @@ def modify_packages(packages_raw: str) -> None:
             continue
         break
 
-    if packages_install:  # if list is not empty
+    if packages_install := " ".join(packages_install):  # check if list is not empty and convert to string
         print_status("Installing packages")
-        bash(pkgmngr_install + " ".join(packages_install))
+        bash(pkgmngr_install.replace("insert_package_list", packages_install))
 
-    if len(packages_remove):  # if list is not empty
+    if packages_remove := " ".join(packages_remove):  # check if list is not empty and convert to string
         print_status("Removing packages")
-        bash(pkgmngr_remove + " ".join(packages_remove))
+        bash(pkgmngr_remove.replace("insert_package_list", packages_remove))
 
 
 if __name__ == "__main__":
@@ -59,17 +59,18 @@ if __name__ == "__main__":
             # check if lock files are in use with fuser
             # returns 1 if no process is using the file -> ignore return code
             pkgmngr_lock_check = "fuser /var/lib/dpkg/lock* || true"
-            pkgmngr_install = "apt-get install -y "
-            pkgmngr_remove = "apt-get purge -y "
+            pkgmngr_install = "apt-get install -y insert_package_list"
+            pkgmngr_remove = "apt-get purge -y insert_package_list"
         case "fedora":
             # TODO: Update path for dnf5
             pkgmngr_lock_check = "ls -a /var/cache/dnf/ | grep pid  || true"  # dnf has multiple lock files
-            pkgmngr_install = "dnf install -y "
-            pkgmngr_remove = "dnf remove -y "
+            pkgmngr_install = "dnf install -y insert_package_list"
+            pkgmngr_remove = "dnf remove -y insert_package_list"
         case "arch":
             pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck || true"  # pacman deletes lock files -> check if it exists
-            pkgmngr_install = "pacman -S --noconfirm "
-            pkgmngr_remove = "pacman -R --noconfirm "
+            pkgmngr_install = "pacman -S --noconfirm insert_package_list"
+            # pacman throws an error when trying to remove a package that is not installed -> ignore return code
+            pkgmngr_remove = "pacman -R --noconfirm insert_package_list || true"
 
     # Start main script loop
     print_status("Reading update files from /var/tmp/eupnea-updates")
