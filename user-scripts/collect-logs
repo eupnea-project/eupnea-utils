@@ -87,7 +87,7 @@ def collect_audio_logs() -> None:
         bash("systemctl --user stop pipewire*")
         Thread(target=run_pipewire, daemon=True).start()
         sleep(10)
-        bash("killall pipewire")
+        # bash("killall pipewire")
         # restart pipewire
         with contextlib.suppress(subprocess.CalledProcessError):
             bash("systemctl --user start pipewire")
