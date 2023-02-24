@@ -28,7 +28,7 @@ if __name__ == "__main__":
         os.execlpe('sudo', *sudo_args)
 
     # Exit if running from inside a chroot
-    if bash("ls -di /") != "2 /":
+    if not path_exists("/proc/mounts"):
         print_warning("Chroot detected: Skipping kernel flashing, please flash manually.")
         exit(0)
 
