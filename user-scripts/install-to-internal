@@ -89,11 +89,6 @@ def post_copy() -> None:
         json.dump(settings, settings_file)
 
 
-# chroot command
-def chroot(command: str) -> str:
-    return bash(f'chroot /mnt/internal /bin/sh -c "{command}"')
-
-
 if __name__ == "__main__":
     args = process_args()
 
@@ -105,8 +100,6 @@ if __name__ == "__main__":
     if args.verbose:
         print_warning("Verbosity increased")
         set_verbose(args.verbose)  # enable verbose output in functions.py
-
-    prevent_idle()
 
     # read root partition mount
     root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
