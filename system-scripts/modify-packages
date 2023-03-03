@@ -5,10 +5,13 @@
 # from within a postinstall script of a package. Therefor a systemd updater script is run, which will wait for the
 # package-manager to finish and then install/remove the necessary packages.
 
-# This script will read all files from /var/tmp/eupnea-updates and install/remove the packages specified in those files.
+# This script will read all files from /var/tmp/eupnea-updates and re/install/remove the packages specified in those files.
 # The files will be executed in an alphanumerical order. The files will be deleted after they have been executed.
 # The name of the files should be something like v1.1.0.txt, v1.1.1.txt, v1.1.2.txt, etc.
 # The files should be a plain text file with all packages on one line. Only the first line will be read.
+
+# If the package name is prefixed with a minus sign (-), the package will be removed.
+# If the package name is prefixed with an exclamation mark (!), the package will be reinstalled.
 
 import json
 import os
@@ -21,14 +24,17 @@ from functions import *
 def modify_packages(packages_raw: str) -> None:
     packages_remove = []
     packages_install = []
+    packages_reinstall = []
     for package in packages_raw.split(" "):
         if package.startswith("-"):
             packages_remove.append(package[1:])
+        elif package.startswith("!"):
+            packages_reinstall.append(package[1:])
         else:
             packages_install.append(package)
 
-    if not len(packages_install) and not len(packages_remove):
-        print_warning("No packages to install or remove")
+    if not len(packages_install) and not len(packages_remove) and not len(packages_reinstall):
+        print_warning("No packages to re/install or remove")
         return  # if no packages are to be installed or removed; should not really happen
 
     print_status("Waiting for package manager to be ready")
@@ -42,6 +48,10 @@ def modify_packages(packages_raw: str) -> None:
     if packages_install := " ".join(packages_install):  # check if list is not empty and convert to string
         print_status("Installing packages")
         bash(pkgmngr_install.replace("insert_package_list", packages_install))
+
+    if packages_reinstall := " ".join(packages_reinstall):  # check if list is not empty and convert to string
+        print_status("Reinstalling packages")
+        bash(pkgmngr_reinstall.replace("insert_package_list", packages_reinstall))
 
     if packages_remove := " ".join(packages_remove):  # check if list is not empty and convert to string
         print_status("Removing packages")
@@ -60,15 +70,18 @@ if __name__ == "__main__":
             # returns 1 if no process is using the file -> ignore return code
             pkgmngr_lock_check = "fuser /var/lib/dpkg/lock* || true"
             pkgmngr_install = "apt-get install -y insert_package_list"
+            pkgmngr_reinstall = "apt-get reinstall -y insert_package_list"
             pkgmngr_remove = "apt-get purge -y insert_package_list"
         case "fedora":
             # TODO: Update path for dnf5
             pkgmngr_lock_check = "ls -a /var/cache/dnf/ | grep pid  || true"  # dnf has multiple lock files
             pkgmngr_install = "dnf install -y insert_package_list"
+            pkgmngr_reinstall = "dnf reinstall -y insert_package_list"
             pkgmngr_remove = "dnf remove -y insert_package_list"
         case "arch":
             pkgmngr_lock_check = "ls /var/lib/pacman/ | grep .lck || true"  # pacman deletes lock files -> check if it exists
-            pkgmngr_install = "pacman -S --noconfirm insert_package_list"
+            pkgmngr_install = "pacman -S --noconfirm --needed insert_package_list"  # --needed to prevent reinstalling
+            pkgmngr_reinstall = "pacman -S --noconfirm insert_package_list"
             # pacman throws an error when trying to remove a package that is not installed -> ignore return code
             pkgmngr_remove = "pacman -R --noconfirm insert_package_list || true"
 
