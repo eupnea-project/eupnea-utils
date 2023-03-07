@@ -70,6 +70,7 @@ if __name__ == "__main__":
     partitions = partitions[:-1]  # get device name
 
     # save current kernel to a file
+    print_status("Extracting current kernel")
     bash(f"dd if={partitions}1 of=/tmp/old_kernel")
 
     if not args.skip_backup:
