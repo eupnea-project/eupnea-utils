@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, "/usr/lib/eupnea")
+from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--kernel-path", dest="kernel_path", default="None",
+                        help="Full path to kernel image to be installed. Usage example: install-kernel /tmp/bzImage-new")
+    parser.add_argument("--kernel-flags", dest="kernel_flags", default="/proc/cmdline",
+                        help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path.")
+    parser.add_argument("-i", dest="interactive", default=False, help="Interactively edit kernel flags.")
+    parser.add_argument("--skip-backup", dest="skip_backup", default=False,
+                        help="Do not backup kernel from 1st partition to 2nd.")
+    parser.add_argument("--partition", dest="partition", default=1, help="Partition to flash kernel to. Defaults to 1")
+    parser.add_argument("--device", dest="device", default="current",
+                        help="Device to flash kernel to. Defaults to currently booted device.")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = process_args()
+
+    # Restart script as root
+    if os.geteuid() != 0:
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
+    # Exit if running from inside a chroot
+    if not path_exists("/proc/mounts"):
+        print_warning("Chroot detected: Skipping kernel flashing, please flash manually.")
+        exit(0)
+
+    # make tmp location
+    rmdir("/tmp/kernel-update")  # delete old files
+    mkdir("/tmp/kernel-update")
+
+    # Read current device
+    if args.device == "current":
+        # get device "name"
+        root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        device = root_part[:-1]
+    else:
+        device = args.device
+        if not device.startswith("/dev/"):
+            device = f"/dev/{args.device}"
+
+        # if device ends with a number, remove it
+        if device[-1].isdigit():
+            device = device[:-1]
+
+    # if no kernel is given, dd the currently running kernel to a file
+    if args.kernel_path == "None":
+        print_status(f"No kernel given, using kernel on partition {args.partition} of {device}")
+        bash(f"dd if={device}{args.partition} of=/tmp/kernel-update/bzImage")
+    else:
+        cpfile(args.kernel_path, "/tmp/kernel-update/bzImage")  # Copy image to temporary location
+    cpfile(args.kernel_flags, "/tmp/kernel-update/kernel.flags")  # Write kernel flags to temporary location
+
+    # Depthcharge automatically adds cros_secure to the kernel flags -> remove it
+    with open("/tmp/kernel-update/kernel.flags", "r") as f:
+        flags = f.read().replace("cros_secure", "").strip()
+    with open("/tmp/kernel-update/kernel.flags", "w") as f:
+        f.write(flags)
+
+    if args.interactive:
+        # Prompt user to edit cmdline with a cli text editor
+        # Default to nano, fallback to vim or vi
+        # "bash" from functions.py doesn't work interactively -> use os.system
+        if path_exists("/usr/bin/gedit"):
+            os.system("gedit /tmp/kernel-update/kernel.flags")
+        elif path_exists("/usr/bin/gnome-text-editor"):
+            os.system("gnome-text-editor /tmp/kernel-update/kernel.flags")
+        elif path_exists("/usr/bin/nano"):
+            os.system("nano /tmp/kernel-update/kernel.flags")
+        elif path_exists("/usr/bin/vim"):
+            os.system("vim /tmp/kernel-update/kernel.flags")
+        else:
+            os.system("vi /tmp/kernel-update/kernel.flags")
+
+        print_header("New cmdline:")
+        with open("/tmp/kernel-update/kernel.flags", "r") as file:
+            print(file.read())
+    if args.interactive:  # Ask user to confirm new cmdline
+        input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
+
+    if not args.skip_backup and args.partition == 1:
+        print_status("Backing up kernel")
+        bash(f"dd if={device}1 of={device}2")  # backup kernel partition to second partition
+
+    print_status("Signing kernel")
+    bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
+         "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-update/kernel.flags "
+         "--config /tmp/kernel-update/kernel.flags --vmlinuz /tmp/kernel-update/bzImage --pack "
+         "/tmp/kernel-update/bzImage.signed")
+
+    print_status("Flashing kernel")
+    bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}{args.partition}")
+
+    rmdir("/tmp/kernel-update")  # delete files
+
+    if args.interactive:
+        print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
+        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+        bash("reboot")
