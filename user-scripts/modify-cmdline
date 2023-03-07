@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     print_header("\nNew cmdline:")
     with open("/tmp/cmdline", "r") as file:
-        print_status(file.read())
+        print_status(file.read().strip())
     # Ask user to confirm new cmdline
     input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
 
