@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, "/usr/lib/eupnea")
+from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("kernel_path", help="Full path to kernel image to be installed. Usage example: install-kernel"
+                                            " /tmp/bzImage-new")
+    parser.add_argument("--kernel-flags", dest="kernel_flags", default="/proc/cmdline",
+                        help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path.")
+    parser.add_argument("--partition", dest="partition", default=1, help="Partition to flash kernel to. Defaults to 1")
+    parser.add_argument("--device", dest="device", default="current",
+                        help="Device to flash kernel to. Defaults to currently booted device.")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = process_args()
+
+    # Restart script as root
+    if os.geteuid() != 0:
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
+    # Exit if running from inside a chroot
+    if not path_exists("/proc/mounts"):
+        print_warning("Chroot detected: Skipping kernel flashing, please flash manually.")
+        exit(0)
+
+    # make tmp location
+    rmdir("/tmp/kernel-update")  # delete old files
+    mkdir("/tmp/kernel-update")
+
+    cpfile(args.kernel_path, "/tmp/kernel-update/bzImage")  # Copy image to temporary location
+    cpfile(args.kernel_flags, "/tmp/kernel-update/kernel.flags")  # Write kernel flags to temporary location
+
+    # Depthcharge automatically adds cros_secure to the kernel flags -> remove it
+    with open("/tmp/kernel-update/kernel.flags", "r") as f:
+        flags = f.read().replace("cros_secure", "").strip()
+    with open("/tmp/kernel-update/kernel.flags", "w") as f:
+        f.write(flags)
+
+    print_status("Signing kernel")
+    bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
+         "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-update/kernel.flags "
+         "--config /tmp/kernel-update/kernel.flags --vmlinuz /tmp/kernel-update/bzImage --pack "
+         "/tmp/kernel-update/bzImage.signed")
+
+    # Read current device
+    if args.device == "current":
+        # get device "name"
+        root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        device = root_part[:-1]
+    else:
+        device = args.device
+        if not device.startswith("/dev/"):
+            device = f"/dev/{args.device}"
+        if device[-1].isdigit():  # if device ends with a number, remove it
+            device = device[:-1]
+
+    print_status("Flashing kernel")
+    bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}{args.partition}")
+
+    rmdir("/tmp/kernel-update")  # delete files
+
+    if args.interactive:
+        print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
+        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+        bash("reboot")

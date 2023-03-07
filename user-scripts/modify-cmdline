@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+
+# This script is an interactive frontend for the system script install-kernel (/usr/lib/eupnea/install-kernel).
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, "/usr/lib/eupnea")
+from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
+                        help="Show current command line")
+    parser.add_argument("--skip-backup", dest="skip_backup", default=False,
+                        help="Do not backup kernel from 1st partition to 2nd.")
+    parser.add_argument("-v", action="store_true", dest="verbose", default=False, help="Print more output")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = process_args()
+    if args.print_current:
+        print_header("Current command line: ")
+        with open("/proc/cmdline", "r") as file:
+            print(file.read())
+        exit(0)
+
+    # Restart script as root
+    if os.geteuid() != 0:
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
+    # Save current cmdline to a file
+    with open("/proc/cmdline", "r") as file:
+        current_cmdline = file.read().strip()
+    # remove cros_secure kernel flags, as they are added automatically each boot anyway
+    current_cmdline = current_cmdline.replace("cros_secure ", "")
+    with open("/tmp/cmdline", "w") as file:
+        file.write(current_cmdline)
+
+    # Prompt user to edit cmdline with a cli text editor
+    # Default to nano, fallback to vim or vi
+    # "bash" from functions.py doesn't work interactively -> use os.system
+    if path_exists("/usr/bin/gedit"):
+        os.system("gedit /tmp/cmdline")
+    elif path_exists("/usr/bin/gnome-text-editor"):
+        os.system("gnome-text-editor /tmp/cmdline")
+    elif path_exists("/usr/bin/nano"):
+        os.system("nano /tmp/cmdline")
+    elif path_exists("/usr/bin/vim"):
+        os.system("vim /tmp/cmdline")
+    elif path_exists("/usr/bin/vi"):
+        os.system("vi /tmp/cmdline")
+    else:
+        print_error("No text editor found. Please install nano/vim/vi")
+        exit(1)
+
+    print_header("New cmdline:")
+    with open("/tmp/cmdline", "r") as file:
+        print(file.read())
+    # Ask user to confirm new cmdline
+    input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
+
+    # read partitions
+    partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
+    partitions = partitions[:-1]  # get device name
+
+    # save current kernel to a file
+    bash(f"dd if={partitions}1 of=/tmp/old_kernel")
+
+    if not args.skip_backup:
+        print_status("Backing up kernel")
+        bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
+
+    # start install-kernel script
+    print_status("Installing new kernel")
+    bash("/usr/lib/eupnea/install-kernel /tmp/old_kernel --kernel-flags /tmp/cmdline")
+
+    print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
+    input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+    bash("reboot")
