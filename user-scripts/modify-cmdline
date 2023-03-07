@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import sys
-import argparse
 
 sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
@@ -11,11 +11,12 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--reset', action="store_true", dest="reset", default=False,
-                        help="Reset to default command line")
     parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
                         help="Show current command line")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
+    parser.add_argument("--cmdline-path", dest="cmdline-path", default="/proc/cmdline",
+                        help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path. Disables "
+                             "interactive mode.")
+    parser.add_argument("-v", action="store_true", dest="verbose", default=False, help="Print more output")
     return parser.parse_args()
 
 
@@ -34,38 +35,42 @@ if __name__ == "__main__":
 
     print_status("Reading partition table")
     partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-    partitions = partitions[:-1] # get device name
-    if args.reset:
-        print_status("Resetting to default command line")
-        temp_cmdline = "console=tty1 root=PARTUUID=insert_partuuid i915.modeset=1 rootwait rw fbcon=logo-pos:center," \
-                       "logo-count:1"
-        rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {partitions}3")  # get partuuid of rootfs
-        new_cmdline = temp_cmdline.replace("insert_partuuid", rootfs_partuuid)  # replace PARTUUID in default cmdline
-        with open("/tmp/cmdline", "w") as file:
-            file.write(new_cmdline + "\n")
-    else:
-        # Save current cmdline to a file
-        with open("/proc/cmdline", "r") as file:
-            current_cmdline = file.read().strip()
-        with open("/tmp/cmdline", "w") as file:
-            file.write(current_cmdline)
+    partitions = partitions[:-1]  # get device name
 
+    # Save current cmdline to a file
+    print_status(f"Using cmdline from {args.cmdline_path}")
+    with open(args.cmdline_path, "r") as file:
+        current_cmdline = file.read().strip()
+    with open("/tmp/cmdline", "w") as file:
+        file.write(current_cmdline)
+
+    # remove cros_secure kernel flags, as they are added automatically each boot anyways
+    with open("/tmp/cmdline", "r") as file:
+        tmp_cmdline = file.read().strip()
+    tmp_cmdline = tmp_cmdline.replace("cros_secure ", "")
+    with open("/tmp/cmdline", "w") as file:
+        file.write(tmp_cmdline)
+
+    if args.cmdline_path == "/proc/cmdline":
         # Prompt user to edit cmdline with a cli text editor
         # Default to nano, fallback to vim or vi
         # "bash" from functions.py doesn't work interactively -> use os.system
-        if path_exists("/usr/bin/nano"):
+        if path_exists("/usr/bin/gedit"):
+            os.system("gedit /tmp/cmdline")
+        elif path_exists("/usr/bin/gnome-text-editor"):
+            os.system("gnome-text-editor /tmp/cmdline")
+        elif path_exists("/usr/bin/nano"):
             os.system("nano /tmp/cmdline")
         elif path_exists("/usr/bin/vim"):
             os.system("vim /tmp/cmdline")
         else:
             os.system("vi /tmp/cmdline")
 
-    # remove cros_secure kernel flags, as its added automatically each boot
-    with open("/tmp/cmdline", "r") as file:
-        tmp_cmdline = file.read().strip()
-    tmp_cmdline = tmp_cmdline.replace("cros_secure ", "")
-    with open("/tmp/cmdline", "w") as file:
-        file.write(tmp_cmdline)
+        # Ask user to confirm new cmdline
+        print_header("New cmdline:")
+        with open("/tmp/cmdline", "r") as file:
+            print(file.read())
+        input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
 
     print_status("Backing up kernel")
     # Backup old kernel to part 2
@@ -78,6 +83,7 @@ if __name__ == "__main__":
     print_status("Flashing new kernel")
     bash(f"dd if=/tmp/new_kernel of={partitions}1")
 
-    print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
-    input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
-    bash("reboot")
+    if args.cmdline_path == "/proc/cmdline":  # aka interactive mode
+        print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
+        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+        bash("reboot")
