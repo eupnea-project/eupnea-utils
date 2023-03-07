@@ -13,7 +13,7 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
                         help="Show current command line")
-    parser.add_argument("--cmdline-path", dest="cmdline-path", default="/proc/cmdline",
+    parser.add_argument("--cmdline-path", dest="cmdline_path", default="/proc/cmdline",
                         help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path. Disables "
                              "interactive mode.")
     parser.add_argument("-v", action="store_true", dest="verbose", default=False, help="Print more output")
@@ -66,10 +66,10 @@ if __name__ == "__main__":
         else:
             os.system("vi /tmp/cmdline")
 
-        # Ask user to confirm new cmdline
-        print_header("New cmdline:")
-        with open("/tmp/cmdline", "r") as file:
-            print(file.read())
+    print_header("New cmdline:")
+    with open("/tmp/cmdline", "r") as file:
+        print(file.read())
+    if args.cmdline_path == "/proc/cmdline":  # Ask user to confirm new cmdline
         input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
 
     print_status("Backing up kernel")
