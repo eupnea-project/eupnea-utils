@@ -35,23 +35,23 @@ if __name__ == "__main__":
         exit(0)
 
     # make tmp location
-    rmdir("/tmp/kernel-update")  # delete old files
-    mkdir("/tmp/kernel-update")
+    rmdir("/tmp/kernel-install")  # delete old files
+    mkdir("/tmp/kernel-install")
 
-    cpfile(args.kernel_path, "/tmp/kernel-update/bzImage")  # Copy image to temporary location
-    cpfile(args.kernel_flags, "/tmp/kernel-update/kernel.flags")  # Write kernel flags to temporary location
+    cpfile(args.kernel_path, "/tmp/kernel-install/bzImage")  # Copy image to temporary location
+    cpfile(args.kernel_flags, "/tmp/kernel-install/kernel.flags")  # Write kernel flags to temporary location
 
     # Depthcharge automatically adds cros_secure to the kernel flags -> remove it
-    with open("/tmp/kernel-update/kernel.flags", "r") as f:
+    with open("/tmp/kernel-install/kernel.flags", "r") as f:
         flags = f.read().replace("cros_secure", "").strip()
-    with open("/tmp/kernel-update/kernel.flags", "w") as f:
+    with open("/tmp/kernel-install/kernel.flags", "w") as f:
         f.write(flags)
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
-         "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-update/kernel.flags "
-         "--config /tmp/kernel-update/kernel.flags --vmlinuz /tmp/kernel-update/bzImage --pack "
-         "/tmp/kernel-update/bzImage.signed")
+         "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-install/kernel.flags "
+         "--config /tmp/kernel-install/kernel.flags --vmlinuz /tmp/kernel-install/bzImage --pack "
+         "/tmp/kernel-install/bzImage.signed")
 
     # Read current device
     if args.device == "current":
@@ -66,9 +66,9 @@ if __name__ == "__main__":
             device = device[:-1]
 
     print_status("Flashing kernel")
-    bash(f"dd if=/tmp/kernel-update/bzImage.signed of={device}{args.partition}")
+    bash(f"dd if=/tmp/kernel-install/bzImage.signed of={device}{args.partition}")
 
-    rmdir("/tmp/kernel-update")  # delete files
+    rmdir("/tmp/kernel-install")  # delete files
 
     if args.interactive:
         print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
