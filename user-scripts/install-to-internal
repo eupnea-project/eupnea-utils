@@ -90,6 +90,9 @@ def post_copy() -> None:
 
 
 if __name__ == "__main__":
+    print_error("This script is currently broken, (as of 8th of March 2023)")
+    exit(1)
+
     args = process_args()
 
     # Restart script as root
