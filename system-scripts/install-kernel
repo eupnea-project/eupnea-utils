@@ -47,9 +47,13 @@ if __name__ == "__main__":
     with open("/tmp/kernel-install/kernel.flags", "w") as f:
         f.write(flags)
 
-    # extract actual kernel if it's a raw dd (will not do anything if it's a raw bzImage already)
-    bash(
-        "futility vbutil_kernel --get-vmlinuz /tmp/kernel-install/bzImage --vmlinuz-out /tmp/kernel-install/bzImage.raw")
+    # attempt to extract kernel if it's a raw dd
+    if Path("/tmp/kernel-install/bzImage").stat().st_size > 60000000:
+        print_status("Attempting to extract kernel from raw dd")
+        bash("futility vbutil_kernel --get-vmlinuz /tmp/kernel-install/bzImage "
+             "--vmlinuz-out /tmp/kernel-install/bzImage.raw")
+    else:
+        cpfile("/tmp/kernel-install/bzImage", "/tmp/kernel-install/bzImage.raw")
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
