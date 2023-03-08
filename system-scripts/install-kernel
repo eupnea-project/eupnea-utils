@@ -48,7 +48,7 @@ if __name__ == "__main__":
         f.write(flags)
 
     # extract actual kernel if it's a raw dd (will not do anything if it's a raw bzImage already)
-    bash("vbutil_kernel --get-vmlinuz /tmp/kernel-install/bzImage --vmlinuz-out /tmp/kernel-install/bzImage.raw")
+    bash("futility vbutil_kernel --get-vmlinuz /tmp/kernel-install/bzImage --vmlinuz-out /tmp/kernel-install/bzImage.raw")
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
