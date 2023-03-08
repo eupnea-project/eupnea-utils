@@ -74,7 +74,4 @@ if __name__ == "__main__":
 
     rmdir("/tmp/kernel-install")  # delete files
 
-    if args.interactive:
-        print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
-        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
-        bash("reboot")
+    print_status("Kernel flashed successfully!")
