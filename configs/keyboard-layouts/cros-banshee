@@ -1,0 +1,50 @@
+# Layout for the Framework Chromebook (banshee)
+[ids]
+
+# AT keyboard is device 0001:0001
+0001:0001
+
+[main]
+
+back = back
+refresh = refresh
+zoom = f11
+scale = scale
+print = print
+brightnessdown = brightnessdown
+brightnessup = brightnessup
+kbdillumtoggle = kbdillumtoggle
+playpause = playpause
+mute = mute
+volumedown = volumedown
+volumeup = volumeup
+
+[super] # When search key is held make the top row act like function keys
+
+back = f1
+refresh = f2
+zoom = f3
+scale = f4
+print = f5
+brightnessdown = f6
+brightnessup = f7
+kbdillumtoggle = f8
+playpause = f9
+mute = f10
+volumedown = f11
+volumeup = f12
+
+# Misc ChromeOS shortcuts
+[alt]
+
+backspace = delete # alt + backspace = delete
+super = capslock # alt + super = capslock
+
+[shift]
+f5 = print # shift + f5 = printscreen
+scale = print # f5 is scale on devices with vivaldi`
+
+# Non ChromeOS shortcuts
+[control+alt]
+
+backspace = C-A-delete # Ctrl + alt + backspace = ctrl + alt + delete
