@@ -77,7 +77,7 @@ def partition_and_flash():
     # rsync is faster and allows to exclude certain directories
     bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
          "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
-    # The system wont boot in /tmp doesn't exist
+    # The system wont boot if /tmp doesn't exist
     mkdir("/mnt/internal/tmp")
 
 
