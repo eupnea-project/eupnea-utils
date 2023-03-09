@@ -77,6 +77,8 @@ def partition_and_flash():
     # rsync is faster and allows to exclude certain directories
     bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
          "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
+    # The system wont boot in /tmp doesn't exist
+    mkdir("/mnt/internal/tmp")
 
 
 # Force internal to resize on first boot
@@ -90,9 +92,6 @@ def post_copy() -> None:
 
 
 if __name__ == "__main__":
-    print_error("This script is currently broken, (as of 8th of March 2023)")
-    exit(1)
-
     args = process_args()
 
     # Restart script as root
