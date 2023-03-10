@@ -36,7 +36,7 @@ if __name__ == "__main__":
         with open("/proc/sys/kernel/random/boot_id", "r") as f:
             boot_id = f.read()
         if reboot_needed == boot_id:
-            print_error("System is pending reboot. Please reboot before proceeding.")
+            print_error("System is pending a reboot. Please reboot before proceeding.")
             exit(65)
 
     # Exit if running from inside a chroot
