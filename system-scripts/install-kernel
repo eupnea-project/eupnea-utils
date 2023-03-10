@@ -87,7 +87,7 @@ if __name__ == "__main__":
     bash(f"dd if=/tmp/kernel-install/bzImage.signed of={device}{args.partition}")
 
     # Create reboot_needed file
-    with open("/sys/kernel/random/boot_id", "r") as f:
+    with open("/proc/sys/kernel/random/boot_id", "r") as f:
         boot_id = f.read()
     with open("/tmp/reboot_needed", "w") as f:
         f.write(boot_id)
