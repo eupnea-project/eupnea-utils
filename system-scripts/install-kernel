@@ -37,7 +37,7 @@ if __name__ == "__main__":
             boot_id = f.read()
         if reboot_needed == boot_id:
             print_error("System is pending reboot. Please reboot before proceeding.")
-            exit(1)
+            exit(65)
 
     # Exit if running from inside a chroot
     if not path_exists("/proc/mounts"):
