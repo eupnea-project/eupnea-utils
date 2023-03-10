@@ -61,16 +61,6 @@ def modify_packages(packages_raw: str) -> None:
 if __name__ == "__main__":
     set_verbose(True)
 
-    # Check if a reboot is pending
-    if path_exists("/var/tmp/reboot_needed"):
-        with open("/var/tmp/reboot_needed", "r") as f:
-            reboot_needed = f.read()
-        with open("/proc/sys/kernel/random/boot_id", "r") as f:
-            boot_id = f.read()
-        if reboot_needed == boot_id:
-            print_error("System is pending a reboot. Please reboot before proceeding.")
-            exit(65)
-
     # Read distro name and set package manager commands
     with open("/etc/eupnea.json") as f:
         distro_name = json.load(f)["distro_name"]
