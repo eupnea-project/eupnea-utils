@@ -30,8 +30,8 @@ if __name__ == "__main__":
         os.execlpe('sudo', *sudo_args)
 
     # read reboot_needed file if it exists
-    if path_exists("/tmp/reboot_needed"):
-        with open("/tmp/reboot_needed", "r") as f:
+    if path_exists("/var/tmp/reboot_needed"):
+        with open("/var/tmp/reboot_needed", "r") as f:
             reboot_needed = f.read()
         with open("/proc/sys/kernel/random/boot_id", "r") as f:
             boot_id = f.read()
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Create reboot_needed file
     with open("/proc/sys/kernel/random/boot_id", "r") as f:
         boot_id = f.read()
-    with open("/tmp/reboot_needed", "w") as f:
+    with open("/var/tmp/reboot_needed", "w") as f:
         f.write(boot_id)
 
     rmdir("/tmp/kernel-install")  # delete files
