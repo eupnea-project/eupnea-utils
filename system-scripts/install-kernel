@@ -18,6 +18,8 @@ def process_args():
     parser.add_argument("--partition", dest="partition", default=1, help="Partition to flash kernel to. Defaults to 1")
     parser.add_argument("--device", dest="device", default="current",
                         help="Device to flash kernel to. Defaults to currently booted device.")
+    parser.add_argument("--ignore-reboot", dest="ignore_reboot", action="store_true",
+                        help="Force install kernel without reboot check.")
     return parser.parse_args()
 
 
@@ -37,7 +39,10 @@ if __name__ == "__main__":
             boot_id = f.read()
         if reboot_needed == boot_id:
             print_error("System is pending a reboot. Please reboot before proceeding.")
-            exit(65)
+            if not args.ignore_reboot:
+                exit(65)
+            else:
+                print_warning("Ignoring reboot check.")
 
     # Exit if running from inside a chroot
     if not path_exists("/proc/mounts"):
