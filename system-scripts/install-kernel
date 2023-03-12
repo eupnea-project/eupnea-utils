@@ -11,8 +11,12 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("kernel_path", help="Full path to kernel image to be installed. Usage example: install-kernel"
-                                            " /tmp/bzImage-new")
+    parser.add_argument("--current-device-kernel", dest="current_device_kernel", action="store_true",
+                        help="Use kernel from currently booted device")
+    temp_args = parser.parse_args()
+    if not temp_args.current_device_kernel:
+        parser.add_argument("kernel_path", help="Full path to kernel image to be installed. Usage example: "
+                                                "install-kernel /tmp/bzImage-new", default="Kok")
     parser.add_argument("--kernel-flags", dest="kernel_flags", default="/proc/cmdline",
                         help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path.")
     parser.add_argument("--partition", dest="partition", default=1, help="Partition to flash kernel to. Defaults to 1")
@@ -52,6 +56,16 @@ if __name__ == "__main__":
     # make tmp location
     rmdir("/tmp/kernel-install")  # delete old files
     mkdir("/tmp/kernel-install")
+
+    if args.current_device_kernel:
+        # read partitions
+        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        partitions = partitions[:-1]  # get device name
+
+        # save current kernel to a file
+        print_status("Extracting current kernel")
+        bash(f"dd if={partitions}{args.partition} of=/tmp/current_kernel")
+        args.kernel_path = "/tmp/current_kernel"
 
     cpfile(args.kernel_path, "/tmp/kernel-install/bzImage")  # Copy image to temporary location
     cpfile(args.kernel_flags, "/tmp/kernel-install/kernel.flags")  # Write kernel flags to temporary location
