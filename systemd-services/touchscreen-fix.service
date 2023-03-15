@@ -1,0 +1,14 @@
+# This one-shot unit is responsible for fixing touchscreens on some chromebooks
+# It needs to be run on every boot
+[Unit]
+Description=Fix various touchscreens
+After=basic.target
+
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/lib/eupnea/fix-touchscreens.sh
+
+[Install]
+WantedBy=graphical.target
