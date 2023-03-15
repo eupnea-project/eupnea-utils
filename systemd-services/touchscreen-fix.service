@@ -8,7 +8,7 @@ After=basic.target
 [Service]
 Type=oneshot
 RemainAfterExit=no
-ExecStart=/usr/lib/eupnea/fix-touchscreens.sh
+ExecStart=/usr/lib/eupnea/fix-touchscreen.sh
 
 [Install]
 WantedBy=graphical.target
