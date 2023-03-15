@@ -31,24 +31,6 @@ def expand_rootfs() -> None:
             json.dump(eupnea_settings, file)
 
 
-def device_fixes() -> None:
-    """
-    This function determines the device and applies specific fixes if needed
-    """
-    with open("/sys/devices/virtual/dmi/id/product_name", "r") as file:
-        product_name = file.read().strip().lower()
-    match product_name:
-        case "sona" | "laser":
-            # Apply fix for display driver
-            # TODO: Add multitouch support
-
-            # copy systemd file from config
-            cpfile("/etc/eupnea/device-specific/sona_laser/touchscreen-fix.service",
-                   "/etc/systemd/system/touchscreen-fix.service")
-            # enable service
-            bash("systemctl enable touchscreen-fix.service")
-
-
 def distro_fixes() -> None:
     with open("/etc/eupnea.json", "r") as file:
         eupnea_json = json.load(file)
@@ -87,7 +69,6 @@ if __name__ == "__main__":
             break  # sddm is not installed
 
     expand_rootfs()
-    device_fixes()
     set_hostname()
 
     # disable postinstall systemd service
