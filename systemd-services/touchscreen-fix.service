@@ -2,7 +2,7 @@
 # It needs to be run on every boot
 [Unit]
 Description=Fix various touchscreens
-After=display-manager.service
+After=basic.target
 
 
 [Service]
