@@ -3,6 +3,7 @@
 # Reload the elants_i2c driver
 # This is mainline specific, as it works fine on chromeos kernels
 # Check if module is loaded
+# Reload module before biding touchscreen, as otherwise the binding will be lost on module reload
 if lsmod | grep -qw elants_i2c; then
   # Reload the module
   echo "Reloading elants_i2c driver"
