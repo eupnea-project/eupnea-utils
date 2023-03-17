@@ -22,3 +22,8 @@ if [ -d /sys/bus/i2c/devices/i2c-GDIX0000:00 ]; then
   echo "Linking i2c_hid_acpi to GDIX0000 touchscreen device"
   echo "i2c-GDIX0000:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/bind
 fi
+# Set correct module for elan touchscreens
+if [ -d /sys/bus/i2c/devices/i2c-ELAN90FC:00 ]; then
+  echo "Linking i2c_hid_acpi to ELAN90FC touchscreen device"
+  echo "i2c-ELAN90FC:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/bind
+fi
