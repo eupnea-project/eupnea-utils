@@ -11,12 +11,14 @@ from functions import *
 # parse arguments from the cli.
 def process_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("kernel_path", help="Full path to kernel image to be installed. Usage example: install-kernel"
-                                            " /tmp/bzImage-new")
+    parser.add_argument("--kernel-path", dest="kernel_path", help="Full path to kernel image to be installed.")
+    parser.add_argument("--read-partition", dest="read_partition", default=1,
+                        help="Partition to read kernel from if no kernel path is specified. Defaults to 1")
     parser.add_argument("--kernel-flags", dest="kernel_flags", default="/proc/cmdline",
                         help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path.")
-    parser.add_argument("--partition", dest="partition", default=1, help="Partition to flash kernel to. Defaults to 1")
-    parser.add_argument("--device", dest="device", default="current",
+    parser.add_argument("--flash-partition", dest="flash_partition", default=1,
+                        help="Partition to flash kernel to. Defaults to 1")
+    parser.add_argument("--device", dest="device",
                         help="Device to flash kernel to. Defaults to currently booted device.")
     parser.add_argument("--ignore-reboot", dest="ignore_reboot", action="store_true",
                         help="Force install kernel without reboot check.")
@@ -50,46 +52,48 @@ if __name__ == "__main__":
         exit(0)
 
     # make tmp location
-    rmdir("/tmp/kernel-install")  # delete old files
-    mkdir("/tmp/kernel-install")
+    temp_dir = bash("mktemp -d")
 
-    cpfile(args.kernel_path, "/tmp/kernel-install/bzImage")  # Copy image to temporary location
-    cpfile(args.kernel_flags, "/tmp/kernel-install/kernel.flags")  # Write kernel flags to temporary location
+    # read current device if no device is given
+    if not args.device:
+        args.device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
+    else:
+        # Fix user passed device name
+        if not args.device.startswith("/dev/"):
+            args.device = f"/dev/{args.device}"
+        if args.device[-1].isdigit():  # if device ends with a number, remove it
+            args.device = args.device[:-1]
+
+    # Read current kernel if no kernel file is given
+    if not args.kernel_path:
+        print_status(f"Reading kernel from {args.device} partition {args.read_partition}")
+        bash(f"dd if={args.device}{args.read_partition} of={temp_dir}/bzImage")
+    else:
+        cpfile(args.kernel_path, f"{temp_dir}/bzImage")  # Copy image to temporary location
+    cpfile(args.kernel_flags, f"{temp_dir}/kernel.flags")  # Write kernel flags to temporary location
 
     # Depthcharge automatically adds cros_secure to the kernel flags -> remove it
-    with open("/tmp/kernel-install/kernel.flags", "r") as f:
+    with open(f"{temp_dir}/kernel.flags", "r") as f:
         flags = f.read().replace("cros_secure", "").strip()
-    with open("/tmp/kernel-install/kernel.flags", "w") as f:
+    with open(f"{temp_dir}/kernel.flags", "w") as f:
         f.write(flags)
 
     # attempt to extract kernel if it's a raw dd
-    if Path("/tmp/kernel-install/bzImage").stat().st_size > 60000000:
+    if Path(f"{temp_dir}/bzImage").stat().st_size > 60000000:
         print_status("Attempting to extract kernel from raw dd")
-        bash("futility vbutil_kernel --get-vmlinuz /tmp/kernel-install/bzImage "
-             "--vmlinuz-out /tmp/kernel-install/bzImage.raw")
+        bash(f"futility vbutil_kernel --get-vmlinuz {temp_dir}/bzImage "
+             f"--vmlinuz-out {temp_dir}/bzImage.raw")
     else:
-        cpfile("/tmp/kernel-install/bzImage", "/tmp/kernel-install/bzImage.raw")
+        cpfile(f"{temp_dir}/bzImage", f"{temp_dir}/bzImage.raw")
 
     print_status("Signing kernel")
     bash("futility vbutil_kernel --arch x86_64 --version 1 --keyblock /usr/share/vboot/devkeys/kernel.keyblock "
-         "--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader /tmp/kernel-install/kernel.flags "
-         "--config /tmp/kernel-install/kernel.flags --vmlinuz /tmp/kernel-install/bzImage.raw --pack "
-         "/tmp/kernel-install/bzImage.signed")
-
-    # Read current device
-    if args.device == "current":
-        # get device "name"
-        root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
-        device = root_part[:-1]
-    else:
-        device = args.device
-        if not device.startswith("/dev/"):
-            device = f"/dev/{args.device}"
-        if device[-1].isdigit():  # if device ends with a number, remove it
-            device = device[:-1]
+         f"--signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --bootloader {temp_dir}/kernel.flags "
+         f"--config {temp_dir}/kernel.flags --vmlinuz {temp_dir}/bzImage.raw --pack "
+         f"{temp_dir}/bzImage.signed")
 
     print_status("Flashing kernel")
-    bash(f"dd if=/tmp/kernel-install/bzImage.signed of={device}{args.partition}")
+    bash(f"dd if={temp_dir}/bzImage.signed of={args.device}{args.partition}")
 
     # Create reboot_needed file
     with open("/proc/sys/kernel/random/boot_id", "r") as f:
@@ -97,6 +101,6 @@ if __name__ == "__main__":
     with open("/var/tmp/reboot_needed", "w") as f:
         f.write(boot_id)
 
-    rmdir("/tmp/kernel-install")  # delete files
+    rmdir(f"{temp_dir}")  # delete temp files
 
     print_status("Kernel flashed successfully!")
