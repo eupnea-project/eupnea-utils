@@ -28,6 +28,11 @@ def process_args():
 if __name__ == "__main__":
     args = process_args()
 
+    # Check if at least 1 argument is given
+    if not args.kernel_path and not args.device and args.read_partition == 1 and args.flash_partition == 1:
+        print_error("No arguments given. Please specify at least one argument.")
+        exit(1)
+
     # Restart script as root
     if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
