@@ -98,7 +98,7 @@ if __name__ == "__main__":
          f"{temp_dir}/bzImage.signed")
 
     print_status("Flashing kernel")
-    bash(f"dd if={temp_dir}/bzImage.signed of={args.device}{args.partition}")
+    bash(f"dd if={temp_dir}/bzImage.signed of={args.device}{args.flash_partition}")
 
     # Create reboot_needed file
     with open("/proc/sys/kernel/random/boot_id", "r") as f:
