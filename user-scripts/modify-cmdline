@@ -4,6 +4,7 @@
 
 import argparse
 import os
+import signal
 import sys
 
 sys.path.insert(0, "/usr/lib/eupnea")
@@ -17,8 +18,26 @@ def process_args():
                         help="Show current command line")
     parser.add_argument("--skip-backup", dest="skip_backup", default=False,
                         help="Do not backup kernel from 1st partition to 2nd.")
+    parser.add_argument("--force-cli-editor", dest="force_cli_editor", action="store_true",
+                        help="Force the use of a cli text editor.")
     parser.add_argument("-v", action="store_true", dest="verbose", default=False, help="Print more output")
     return parser.parse_args()
+
+
+def cli_editors():
+    if path_exists("/usr/bin/nano"):
+        os.system(f"nano {temp_cmdline_file}")
+    elif path_exists("/usr/bin/vim"):
+        os.system(f"vim {temp_cmdline_file}")
+    elif path_exists("/usr/bin/vi"):
+        os.system(f"vi {temp_cmdline_file}")
+    else:
+        print_error("No text editor found. Please install nano/vim/vi")
+        exit(1)
+
+
+def ctrl_c_inhibiter(signum, frame):
+    pass
 
 
 if __name__ == "__main__":
@@ -39,58 +58,57 @@ if __name__ == "__main__":
             print_error("System is pending a reboot. Please reboot before proceeding.")
             exit(65)
 
-    # Restart script as root
-    if os.geteuid() != 0:
-        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
-        os.execlpe('sudo', *sudo_args)
-
     # Save current cmdline to a file
     with open("/proc/cmdline", "r") as file:
         current_cmdline = file.read().strip()
     # remove cros_secure kernel flags, as they are added automatically each boot anyway
     current_cmdline = current_cmdline.replace("cros_secure ", "")
-    with open("/tmp/cmdline", "w") as file:
+    temp_cmdline_file = bash("mktemp").strip()
+    with open(temp_cmdline_file, "w") as file:
         file.write(current_cmdline)
 
     # Prompt user to edit cmdline with a cli text editor
     # Default to nano, fallback to vim or vi
     # "bash" from functions.py doesn't work interactively -> use os.system
-    if path_exists("/usr/bin/gedit"):
-        os.system("gedit /tmp/cmdline")
-    elif path_exists("/usr/bin/gnome-text-editor"):
-        os.system("gnome-text-editor /tmp/cmdline")
-    elif path_exists("/usr/bin/nano"):
-        os.system("nano /tmp/cmdline")
-    elif path_exists("/usr/bin/vim"):
-        os.system("vim /tmp/cmdline")
-    elif path_exists("/usr/bin/vi"):
-        os.system("vi /tmp/cmdline")
-    else:
-        print_error("No text editor found. Please install nano/vim/vi")
-        exit(1)
+    if not args.force_cli_editor:
+        if path_exists("/usr/bin/gedit"):
+            os.system(f"gedit {temp_cmdline_file}")
+        elif path_exists("/usr/bin/gnome-text-editor"):
+            os.system(f"gnome-text-editor {temp_cmdline_file}")
+        elif path_exists("/usr/bin/kate"):
+            os.system(f"kate {temp_cmdline_file}")
+    cli_editors()
 
     print_header("\nNew cmdline:")
-    with open("/tmp/cmdline", "r") as file:
+    with open(temp_cmdline_file, "r") as file:
         print_status(file.read().strip())
     # Ask user to confirm new cmdline
-    input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
+    try:
+        input("\033[92m" + "Press ENTER to continue or CTRL+C to cancel" + "\033[0m")
+    except KeyboardInterrupt:  # avoid python traceback
+        print_error("Not modifying cmdline. Exiting...")
+        exit(0)
 
-    # read partitions
-    partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-    partitions = partitions[:-1]  # get device name
-
-    # save current kernel to a file
-    print_status("Extracting current kernel")
-    bash(f"dd if={partitions}1 of=/tmp/old_kernel")
+    # do not allow ctrl+c to avoid corrupting the kernel
+    signal.signal(signal.SIGINT, ctrl_c_inhibiter)
 
     if not args.skip_backup:
+        # read partitions
+        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
+        partitions = partitions[:-1]  # get device name
         print_status("Backing up kernel")
+        print_header("Backing up kernel requires root privileges.")
         bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
 
     # start install-kernel script
     print_status("Installing new kernel")
-    bash("/usr/lib/eupnea/install-kernel /tmp/old_kernel --kernel-flags /tmp/cmdline")
+    print_header("Installing kernel requires root privileges.")
+    bash(f"sudo /usr/lib/eupnea/install-kernel --kernel-flags {temp_cmdline_file}")
 
     print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
-    input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+    try:
+        input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
+    except KeyboardInterrupt:
+        print_error("Not rebooting. Exiting...")
+        exit(0)
     bash("reboot")
