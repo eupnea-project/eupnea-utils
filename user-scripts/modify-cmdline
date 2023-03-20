@@ -36,10 +36,6 @@ def cli_editors():
         exit(1)
 
 
-def ctrl_c_inhibiter(signum, frame):
-    pass
-
-
 if __name__ == "__main__":
     args = process_args()
     if args.print_current:
@@ -93,7 +89,7 @@ if __name__ == "__main__":
         exit(0)
 
     # do not allow ctrl+c to avoid corrupting the kernel
-    signal.signal(signal.SIGINT, ctrl_c_inhibiter)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # ignore ctrl+c
 
     if not args.skip_backup:
         # read partitions
@@ -109,8 +105,8 @@ if __name__ == "__main__":
     bash(f"sudo /usr/lib/eupnea/install-kernel --kernel-flags {temp_cmdline_file}")
 
     print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
-    # reenable ctrl+c
-    signal.signal(signal.SIGINT, signal.SIGINT)
+    # restore ctrl+c functionality
+    signal.signal(signal.SIGINT, lambda *arg: exec('raise KeyboardInterrupt'))
     try:
         input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
     except KeyboardInterrupt:
