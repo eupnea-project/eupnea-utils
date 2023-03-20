@@ -77,7 +77,10 @@ if __name__ == "__main__":
             os.system(f"gnome-text-editor {temp_cmdline_file}")
         elif path_exists("/usr/bin/kate"):
             os.system(f"kate {temp_cmdline_file}")
-    cli_editors()
+        else:
+            cli_editors()
+    else:
+        cli_editors()
 
     print_header("\nNew cmdline:")
     with open(temp_cmdline_file, "r") as file:
