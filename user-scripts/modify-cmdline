@@ -110,6 +110,6 @@ if __name__ == "__main__":
     try:
         input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
     except KeyboardInterrupt:
-        print_error("\nNot rebooting. Exiting...")
+        print_error("\nNot rebooting. Please reboot manually...")
         exit(0)
     bash("reboot")
