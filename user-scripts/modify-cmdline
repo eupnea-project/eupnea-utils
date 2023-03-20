@@ -109,6 +109,8 @@ if __name__ == "__main__":
     bash(f"sudo /usr/lib/eupnea/install-kernel --kernel-flags {temp_cmdline_file}")
 
     print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
+    # reenable ctrl+c
+    signal.signal(signal.SIGINT, signal.SIGINT)
     try:
         input("\033[92m" + "Press ENTER to reboot or CTRL+C to cancel reboot" + "\033[0m")
     except KeyboardInterrupt:
