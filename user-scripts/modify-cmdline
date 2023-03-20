@@ -100,12 +100,12 @@ if __name__ == "__main__":
         partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
         partitions = partitions[:-1]  # get device name
         print_status("Backing up kernel")
-        print_header("Backing up kernel requires root privileges.")
-        bash(f"dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
+        print_question("Backing up kernel requires root privileges.")
+        bash(f"sudo dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
 
     # start install-kernel script
     print_status("Installing new kernel")
-    print_header("Installing kernel requires root privileges.")
+    print_question("Installing kernel requires root privileges.")
     bash(f"sudo /usr/lib/eupnea/install-kernel --kernel-flags {temp_cmdline_file}")
 
     print_header("Kernel cmdline modified successfully! Please reboot to use the new cmdline")
