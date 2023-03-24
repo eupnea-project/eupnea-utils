@@ -49,11 +49,8 @@ def collect_audio_logs() -> None:
                          "--with-devices --with-packages"))
 
     print_status("Running alsaucm")
-    try:
-        with open("/tmp/logs-eupnea/alsaucm.log", "w") as f:
-            f.write(bash("strace alsaucm reload"))
-    except subprocess.CalledProcessError:
-        print_error("Strace failed, check if strace is installed")
+    with contextlib.suppress(subprocess.CalledProcessError):
+        bash("strace -o /tmp/logs-eupnea/alsaucm.log alsaucm reload")  # write strace output to file
 
     pulseaudio_installed = True
     pipewire_installed = True
@@ -119,8 +116,7 @@ def collect_system_logs() -> None:
         file.write(bash("LANG=C dmesg"))
 
     print_status("Collecting journalctl")
-    with open("/tmp/logs-eupnea/journalctl.log", "w") as file:
-        file.write(bash("LANG=C journalctl -b"))
+    cpdir("/var/log/journal/", "/tmp/logs-eupnea/journal")
 
     print_status("Collecting firmware tree")
     with open("/tmp/logs-eupnea/firmware-tree.log", "w") as file:
