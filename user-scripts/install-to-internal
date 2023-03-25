@@ -8,6 +8,9 @@ sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
 if __name__ == "__main__":
+    print_error("This script is currently broken, (as of 25th of March 2023)")
+    exit(1)
+
     # Restart script as root
     if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
