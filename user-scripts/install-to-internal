@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
-import contextlib
 import json
 import os
 import sys
@@ -9,103 +7,13 @@ import sys
 sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
 
-
-# parse arguments from the cli.
-def process_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Print more output")
-    return parser.parse_args()
-
-
-# Configure distro agnostic options
-def partition_and_flash():
-    print_status("Preparing to install to internal storage")
-    # unmount all internal partitions
-    with contextlib.suppress(subprocess.CalledProcessError):
-        bash(f"umount -lf {internal_name}*")
-    # ask user for final confirmation
-    input("\033[92m" + "Are you absolutely sure you want to wipe your internal drive and install Depthboot to it? Enter"
-                       " to continue or Ctrl+C to abort" + "\033[0m")
-
-    # remove pre-existing partition table from internal storage
-    bash(f"wipefs -af {internal_name}")
-
-    # format as per depthcharge requirements,
-    # READ: https://wiki.gentoo.org/wiki/Creating_bootable_media_for_depthcharge_based_devices
-    bash(f"parted -s {internal_name} mklabel gpt")
-    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 1 65")  # kernel partition
-    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 65 129")  # reserve kernel partition
-    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 129 100%")  # rootfs partition
-    bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # set kernel flags
-    bash(f"cgpt add -i 2 -t kernel -S 1 -T 5 -P 1 {internal_name}")  # set reserve kernel flags
-
-    bash("partprobe")  # update kernel partition table
-    rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {internal_name}p3")
-
-    # read current cmdline and update its partuuid
-    with open("/proc/cmdline", "r") as flags:
-        old_cmdline = flags.read()[12:]  # remove cros_secure from the start
-    # replace partuuid with the new one
-    cmdline_start = old_cmdline.find("root=PARTUUID=") + 14
-    cmdline_end = cmdline_start + 36
-    new_cmdline = old_cmdline[:cmdline_start] + rootfs_partuuid + old_cmdline[cmdline_end:]
-    bash("mkdir -p /tmp/install-to-internal")  # make tmp dir
-    with open("/tmp/install-to-internal/kernel.flags", "w") as config:
-        config.write(new_cmdline)
-
-    print_status(f"New cmdline: {new_cmdline}")
-
-    # Copy usb kernel partition
-    kernel_partition = f"{src_device}1"
-    bash(f"dd if={kernel_partition} of=usb_kernel")
-
-    print_status("Signing kernel")
-    bash("futility vbutil_kernel --repack internal_kernel --version 1 --keyblock " +
-         "/usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk " +
-         "--oldblob usb_kernel --config /tmp/install-to-internal/kernel.flags")
-    print_status("Flashing updated kernel")
-    bash(f"dd if=internal_kernel of={internal_name}p1")
-    bash(f"dd if=internal_kernel of={internal_name}p2")  # Backup kernel
-
-    print_status("Formatting internal rootfs part")
-    # Create rootfs ext4 partition
-    bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p3")  # 2>/dev/null is to supress yes broken pipe warning
-
-    print_status("Copying rootfs to internal storage")
-    mkdir("/mnt/internal", create_parents=True)
-    bash(f"mount {internal_name}p3 /mnt/internal")
-    # rsync is faster and allows to exclude certain directories
-    bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
-         "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
-    # The system wont boot if /tmp doesn't exist
-    mkdir("/mnt/internal/tmp")
-
-
-# Force internal to resize on first boot
-def post_copy() -> None:
-    # set build type to image in depthboot settings
-    with open("/mnt/internal/etc/eupnea.json", "r") as settings_file:
-        settings = json.load(settings_file)
-    settings["install_type"] = "internal"
-    with open("/mnt/internal/etc/eupnea.json", "w") as settings_file:
-        json.dump(settings, settings_file)
-
-
 if __name__ == "__main__":
-    args = process_args()
-
     # Restart script as root
     if os.geteuid() != 0:
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    if args.verbose:
-        print_warning("Verbosity increased")
-        set_verbose(args.verbose)  # enable verbose output in functions.py
-
-    # read root partition mount
-    root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
-    src_device = root_part[:-1]  # get usb device "name"
+    set_verbose(True)  # always run verbose
 
     # get internal storage name
     while True:
@@ -141,9 +49,84 @@ if __name__ == "__main__":
             print_status(f"{internal_name} selected")
             break
 
-    partition_and_flash()
-    post_copy()
+    print_status("Preparing to install to internal storage")
+    # unmount all internal partitions
+    with contextlib.suppress(subprocess.CalledProcessError):
+        bash(f"umount -lf {internal_name}*")
+    # ask user for final confirmation
+    try:
+        input("\033[92m" + f"Are you absolutely sure you want to wipe the {internal_name} drive and install Depthboot "
+                           f"to it? Enter to continue or Ctrl+C to abort" + "\033[0m")
+    except KeyboardInterrupt:
+        print_status("Aborting... No changes were made")
+        exit(0)
+
+    # remove pre-existing partition table from internal storage
+    bash(f"wipefs -af {internal_name}")
+
+    # format as per depthcharge requirements,
+    # READ: https://wiki.gentoo.org/wiki/Creating_bootable_media_for_depthcharge_based_devices
+    bash(f"parted -s {internal_name} mklabel gpt")
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 1 65")  # kernel partition
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Kernel 65 129")  # reserve kernel partition
+    bash(f"parted -s -a optimal {internal_name} unit mib mkpart Root 129 100%")  # rootfs partition
+    bash(f"cgpt add -i 1 -t kernel -S 1 -T 5 -P 15 {internal_name}")  # set kernel flags
+    bash(f"cgpt add -i 2 -t kernel -S 1 -T 5 -P 1 {internal_name}")  # set reserve kernel flags
+
+    bash(f"partprobe {internal_name}")  # update kernel partition table on internal device
+
+    internal_rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {internal_name}p3")
+    # read root partition mount
+    root_part = bash("mount | grep ' / ' | cut -d' ' -f 1")
+    current_rootfs_partuuid = bash(f"blkid -o value -s PARTUUID {root_part}")
+
+    # Save current cmdline to a file
+    with open("/proc/cmdline", "r") as file:
+        current_cmdline = file.read().strip()
+    # remove cros_secure kernel flags, as they are added automatically each boot anyway
+    current_cmdline = current_cmdline.replace("cros_secure ", "")
+
+    # update rootfs_partuuid in cmdline
+    current_cmdline = current_cmdline.replace(current_rootfs_partuuid, internal_rootfs_partuuid)
+
+    temp_cmdline_file = bash("mktemp").strip()
+    with open(temp_cmdline_file, "w") as file:
+        file.write(current_cmdline)
+
+    print_status(f"New cmdline: {current_cmdline}")
+
+    # Flash current kernel to internal storage
+    bash(f"/usr/lib/eupnea/install-kernel --kernel-flags {temp_cmdline_file} --device {internal_name}")
+    # Flash reserve kernel partition
+    bash(f"/usr/lib/eupnea/install-kernel --kernel-flags {temp_cmdline_file} --device {internal_name} "
+         f"--flash-partition 2")
+
+    print_status("Formatting internal rootfs part")
+    # Create rootfs ext4 partition
+    bash(f"yes 2>/dev/null | mkfs.ext4 {internal_name}p3")  # 2>/dev/null is to supress yes broken pipe warning
+
+    print_status("Copying rootfs to internal storage")
+    mkdir("/mnt/internal", create_parents=True)
+    bash(f"mount {internal_name}p3 /mnt/internal")
+    # rsync is faster and allows to exclude certain directories
+    bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
+         "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
+    # Recreate unsynced, real directories
+    mkdir("/mnt/tmp", create_parents=True)
+    mkdir("/mnt/var/tmp", create_parents=True)
+    mkdir("/mnt/var/cache", create_parents=True)
+
+    # set build type to image in depthboot settings
+    with open("/mnt/internal/etc/eupnea.json", "r") as settings_file:
+        settings = json.load(settings_file)
+    settings["install_type"] = "internal"
+    with open("/mnt/internal/etc/eupnea.json", "w") as settings_file:
+        json.dump(settings, settings_file)
+    # enable postinstall service on internal storage
+    bash("chroot /mnt/internal /bin/bash -c 'systemctl enable eupnea-postinstall.service'")
+
     with contextlib.suppress(subprocess.CalledProcessError):
         bash("umount -fl /mnt/internal")
     print_header("Installed successfully to internal storage")
-    print_header("You can now boot Depthboot from internal storage")
+    print_header("You can now boot Depthboot from internal storage, by using ctrl+D or selecting 'Boot from internal' "
+                 "on the dev screen")
