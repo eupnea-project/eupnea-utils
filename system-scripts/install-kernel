@@ -54,12 +54,11 @@ if __name__ == "__main__":
             reboot_needed = f.read()
         with open("/proc/sys/kernel/random/boot_id", "r") as f:
             boot_id = f.read()
-        if reboot_needed == boot_id:
+        if reboot_needed == boot_id and not args.ignore_reboot:
             print_error("System is pending a reboot. Please reboot before proceeding.")
-            if not args.ignore_reboot:
-                exit(65)
-            else:
-                print_warning("Ignoring reboot check.")
+            exit(65)
+        else:
+            print_warning("Ignoring reboot check.")
 
     # Exit if running from inside a chroot
     if not path_exists("/proc/mounts"):
@@ -108,18 +107,25 @@ if __name__ == "__main__":
          f"{temp_dir}/bzImage.signed")
 
     print_status("Flashing kernel")
-    # Fix user passed device name
-    if not args.flash_device.startswith("/dev/"):
-        args.flash_device = f"/dev/{args.flash_device}"
-    if args.flash_device[-1].isdigit():  # if device ends with a number, remove it
-        args.flash_device = args.flash_device[:-1]
+    # read current device if no device is given
+    dont_write_reboot_needed = False
+    if not args.flash_device:
+        args.flash_device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
+    else:
+        dont_write_reboot_needed = True
+        # Fix user passed device name
+        if not args.flash_device.startswith("/dev/"):
+            args.flash_device = f"/dev/{args.flash_device}"
+        if args.flash_device[-1].isdigit():  # if device ends with a number, remove it
+            args.flash_device = args.flash_device[:-1]
     bash(f"dd if={temp_dir}/bzImage.signed of={args.flash_device}{args.flash_partition}")
 
-    # Create reboot_needed file
-    with open("/proc/sys/kernel/random/boot_id", "r") as f:
-        boot_id = f.read()
-    with open("/var/tmp/reboot_needed", "w") as f:
-        f.write(boot_id)
+    if not dont_write_reboot_needed:
+        # Create reboot_needed file
+        with open("/proc/sys/kernel/random/boot_id", "r") as f:
+            boot_id = f.read()
+        with open("/var/tmp/reboot_needed", "w") as f:
+            f.write(boot_id)
 
     rmdir(f"{temp_dir}")  # delete temp files
 
