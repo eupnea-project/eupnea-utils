@@ -14,11 +14,14 @@ def process_args():
     parser.add_argument("--kernel-path", dest="kernel_path", help="Full path to kernel image to be installed.")
     parser.add_argument("--read-partition", dest="read_partition", default=1,
                         help="Partition to read kernel from if no kernel path is specified. Defaults to 1")
+    parser.add_argument("--read-device", dest="read_device", default="",
+                        help="Device to read kernel from if no kernel path is specified. Defaults to currently booted "
+                             "device.")
     parser.add_argument("--kernel-flags", dest="kernel_flags", default="/proc/cmdline",
                         help="Kernel flags to be used. Defaults to /proc/cmdline. Must be a full path.")
     parser.add_argument("--flash-partition", dest="flash_partition", default=1,
                         help="Partition to flash kernel to. Defaults to 1")
-    parser.add_argument("--device", dest="device",
+    parser.add_argument("--flash-device", dest="flash_device",
                         help="Device to flash kernel to. Defaults to currently booted device.")
     parser.add_argument("--ignore-reboot", dest="ignore_reboot", action="store_true",
                         help="Force install kernel without reboot check.")
@@ -31,7 +34,8 @@ if __name__ == "__main__":
     # Check if at least 1 argument is given
     if (
             not args.kernel_path
-            and not args.device
+            and not args.flash_device
+            and not args.read_device
             and not args.kernel_flags
             and args.read_partition == 1
             and args.flash_partition == 1
@@ -66,19 +70,19 @@ if __name__ == "__main__":
     temp_dir = bash("mktemp -d")
 
     # read current device if no device is given
-    if not args.device:
-        args.device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
+    if not args.read_device:
+        args.read_device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
     else:
         # Fix user passed device name
-        if not args.device.startswith("/dev/"):
-            args.device = f"/dev/{args.device}"
-        if args.device[-1].isdigit():  # if device ends with a number, remove it
-            args.device = args.device[:-1]
+        if not args.read_device.startswith("/dev/"):
+            args.read_device = f"/dev/{args.read_device}"
+        if args.read_device[-1].isdigit():  # if device ends with a number, remove it
+            args.read_device = args.read_device[:-1]
 
     # Read current kernel if no kernel file is given
     if not args.kernel_path:
-        print_status(f"Reading kernel from {args.device} partition {args.read_partition}")
-        bash(f"dd if={args.device}{args.read_partition} of={temp_dir}/bzImage")
+        print_status(f"Reading kernel from {args.read_device} partition {args.read_partition}")
+        bash(f"dd if={args.read_device}{args.read_partition} of={temp_dir}/bzImage")
     else:
         cpfile(args.kernel_path, f"{temp_dir}/bzImage")  # Copy image to temporary location
     cpfile(args.kernel_flags, f"{temp_dir}/kernel.flags")  # Write kernel flags to temporary location
@@ -104,7 +108,12 @@ if __name__ == "__main__":
          f"{temp_dir}/bzImage.signed")
 
     print_status("Flashing kernel")
-    bash(f"dd if={temp_dir}/bzImage.signed of={args.device}{args.flash_partition}")
+    # Fix user passed device name
+    if not args.flash_device.startswith("/dev/"):
+        args.flash_device = f"/dev/{args.flash_device}"
+    if args.flash_device[-1].isdigit():  # if device ends with a number, remove it
+        args.flash_device = args.flash_device[:-1]
+    bash(f"dd if={temp_dir}/bzImage.signed of={args.flash_device}{args.flash_partition}")
 
     # Create reboot_needed file
     with open("/proc/sys/kernel/random/boot_id", "r") as f:
