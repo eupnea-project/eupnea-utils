@@ -96,10 +96,11 @@ if __name__ == "__main__":
     print_status(f"New cmdline: {current_cmdline}")
 
     # Flash current kernel to internal storage
-    bash(f"/usr/lib/eupnea/install-kernel --ignore-reboot --kernel-flags {temp_cmdline_file} --device {internal_name}p")
+    bash(f"/usr/lib/eupnea/install-kernel --ignore-reboot --kernel-flags {temp_cmdline_file} --flash-device "
+         f"{internal_name}p")
     # Flash reserve kernel partition
-    bash(f"/usr/lib/eupnea/install-kernel --ignore-reboot --kernel-flags {temp_cmdline_file} --device {internal_name}p "
-         f"--flash-partition 2")
+    bash(f"/usr/lib/eupnea/install-kernel --ignore-reboot --kernel-flags {temp_cmdline_file} --flash-device "
+         f"{internal_name}p --flash-partition 2")
 
     print_status("Formatting internal rootfs part")
     # Create rootfs ext4 partition
