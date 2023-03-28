@@ -11,6 +11,9 @@ if lsmod | grep -qw elants_i2c; then
   modprobe elants_i2c
 fi
 
+# Some devices show fake i2c devices, which are not actually present -> ignore bind errors
+set +e
+
 # link the i2c_hid_acpi driver to the SYTS7817 touchscreen device
 # SOURCE: https://github.com/GalliumOS/galliumos-distro/issues/606#issuecomment-1009236456
 if [ -d /sys/bus/i2c/devices/i2c-SYTS7817:00 ]; then
