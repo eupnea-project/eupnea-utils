@@ -133,9 +133,12 @@ if __name__ == "__main__":
     # rsync is faster and allows to exclude certain directories
     # do not sync /var/tmp and /var/cache, as they change very rapidly
     # do not sync /proc, /sys, /dev, /run, as they are not real directories
-    bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
-         "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache --exclude=/lost+found / /mnt/internal")
-    # Recreate unsynced, real directories
+    # use os.system to print output to user
+    # --info=progress2 is used to show progress bar and --no-inc-recursive is used to show progress bar for all files
+    os.system("rsync -aHAXErp --info=progress2 --no-inc-recursive --exclude=/mnt/internal --exclude=/tmp "
+              "--exclude=/var/tmp --exclude=/dev --exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache "
+              "--exclude=/lost+found / /mnt/internal")
+    # Recreate unsynced directories
     mkdir("/mnt/internal/tmp", create_parents=True)
     mkdir("/mnt/internal/var/tmp", create_parents=True)
     mkdir("/mnt/internal/dev", create_parents=True)
