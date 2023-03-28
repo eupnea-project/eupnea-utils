@@ -11,7 +11,7 @@ from functions import *
 def expand_rootfs() -> None:
     with open("/etc/eupnea.json", "r") as file:
         eupnea_settings = json.load(file)
-    if eupnea_settings["install_type"] == "image":  # only resize on image installs
+    if eupnea_settings["install_type"] in ["image", "internal"]:  # do not resize on direct installs
         # read root partition mount
         device = bash("mount | grep ' / ' | cut -d' ' -f 1")[:-1]
         # resize partition
@@ -26,7 +26,10 @@ def expand_rootfs() -> None:
         # resize filesystem to new partition
         bash(f"resize2fs {device}3")
         # set install type to direct
-        eupnea_settings["install_type"] = "expanded-image"
+        if eupnea_settings["install_type"] == "image":
+            eupnea_settings["install_type"] = "expanded-image"
+        else:
+            eupnea_settings["install_type"] = "expanded-internal"
         with open("/etc/eupnea.json", "w") as file:
             json.dump(eupnea_settings, file)
 
