@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # do not sync /var/tmp and /var/cache, as they change very rapidly
     # do not sync /proc, /sys, /dev, /run, as they are not real directories
     bash("rsync -aHAXErp --progress --exclude=/mnt/internal --exclude=/tmp --exclude=/var/tmp --exclude=/dev "
-         "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache / /mnt/internal")
+         "--exclude=/sys --exclude=/proc --exclude=/run --exclude=/var/cache --exclude=/lost+found / /mnt/internal")
     # Recreate unsynced, real directories
     mkdir("/mnt/internal/tmp", create_parents=True)
     mkdir("/mnt/internal/var/tmp", create_parents=True)
@@ -124,6 +124,7 @@ if __name__ == "__main__":
     mkdir("/mnt/internal/proc", create_parents=True)
     mkdir("/mnt/internal/run", create_parents=True)
     mkdir("/mnt/internal/var/cache", create_parents=True)
+    mkdir("/mnt/internal/lost+found", create_parents=True)
 
     # set build type to image in depthboot settings
     with open("/mnt/internal/etc/eupnea.json", "r") as settings_file:
