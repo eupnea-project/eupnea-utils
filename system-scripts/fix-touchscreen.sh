@@ -12,21 +12,26 @@ if lsmod | grep -qw elants_i2c; then
 fi
 
 # Some devices show fake i2c devices, which are not actually present -> ignore bind errors
+# Some devices' touchscreens stop working after a suspend/resume cycle -> unbind and rebind.
+# unbinding on boot will cause an error -> ignore unbind errors too
 set +e
 
 # link the i2c_hid_acpi driver to the SYTS7817 touchscreen device
 # SOURCE: https://github.com/GalliumOS/galliumos-distro/issues/606#issuecomment-1009236456
 if [ -d /sys/bus/i2c/devices/i2c-SYTS7817:00 ]; then
   echo "Linking i2c_hid_acpi to SYTS7817 touchscreen device"
+  echo "i2c-SYTS7817:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/unbind
   echo "i2c-SYTS7817:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/bind
 fi
 # Set correct module for goodix touchscreens
 if [ -d /sys/bus/i2c/devices/i2c-GDIX0000:00 ]; then
   echo "Linking i2c_hid_acpi to GDIX0000 touchscreen device"
+  echo "i2c-GDIX0000:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/unbind
   echo "i2c-GDIX0000:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/bind
 fi
 # Set correct module for elan touchscreens
 if [ -d /sys/bus/i2c/devices/i2c-ELAN90FC:00 ]; then
   echo "Linking i2c_hid_acpi to ELAN90FC touchscreen device"
+  echo "i2c-ELAN90FC:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/unbind
   echo "i2c-ELAN90FC:00" >/sys/bus/i2c/drivers/i2c_hid_acpi/bind
 fi
