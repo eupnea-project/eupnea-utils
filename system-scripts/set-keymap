@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+# This script is used to set the keyboard layout for keyd.
+
+import argparse
+import json
+import os
+import sys
+
+sys.path.insert(0, "/usr/lib/eupnea")
+from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--automatic", action="store_true", dest="automatic",
+                        help="Automatically set the keyboard layout based on the device codename")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = process_args()
+
+    # check if keyd is installed correctly
+    if not os.path.exists("/etc/keyd"):
+        print_error("Keyd was not installed correctly. Please reinstall keyd and try again")
+        sys.exit(1)
+
+    if not args.automatic:
+        all_layouts = os.listdir("/etc/eupnea/keyboard-layouts")
+
+        print_header("Available keyboard layouts:")
+        for layout in all_layouts:
+            print(layout)
+
+        while True:
+            selected_layout = input("\033[92m" + "Please type the full name of the layout you want to use" + "\033[0m")
+            if selected_layout not in all_layouts:
+                print_warning("Invalid layout name. Please try again.")
+            else:
+                break
+    else:
+        # read device codename from dmi
+        with open("/sys/devices/virtual/dmi/id/product_name", "r") as dmi:
+            device_codename = dmi.read().lower().strip()
+        # Some codenames have special keyboard layouts -> match them first
+        match device_codename:
+            case "banshee":  # aka Framework Chromebook
+                selected_layout = "cros-banshee.conf"
+            case "nocturne" | "eve" | "atlas":  # Google Pixelbooks
+                selected_layout = "cros-pixel.conf"
+            case _:
+                # Use the board-generations file of the audio setup script to determine which layout should be used
+                with open("/etc/eupnea/audio/board-generations.json", "r") as generations:
+                    board_generations = json.load(generations)
+                match board_generations[device_codename]:
+                    case "tgl" | "adl":
+                        selected_layout = "cros-modern.conf"
+                    case _:
+                        selected_layout = "cros-standard.conf"
+
+    print_status(f"Setting keyboard layout to: {selected_layout}")
+    # -f to overwrite existing symlink
+    bash(f"ln -sf /etc/eupnea/keyboard-layouts/{selected_layout} /etc/keyd/base.conf")
