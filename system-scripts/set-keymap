@@ -22,6 +22,11 @@ def process_args():
 if __name__ == "__main__":
     args = process_args()
 
+    # Restart script as root
+    if os.geteuid() != 0:
+        sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
+        os.execlpe('sudo', *sudo_args)
+
     # check if keyd is installed correctly
     if not os.path.exists("/etc/keyd"):
         print_error("Keyd was not installed correctly. Please reinstall keyd and try again")
@@ -63,3 +68,6 @@ if __name__ == "__main__":
     print_status(f"Setting keyboard layout to: {selected_layout}")
     # -f to overwrite existing symlink
     bash(f"ln -sf /etc/eupnea/keyboard-layouts/{selected_layout} /etc/keyd/base.conf")
+
+    # restart keyd
+    bash("systemctl restart keyd")
