@@ -16,6 +16,10 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--automatic", action="store_true", dest="automatic",
                         help="Automatically set the keyboard layout based on the device codename")
+    parser.add_argument("--no-check-install", action="store_true", dest="no_check_install",
+                        help="Do not check if keyd was installed correctly")
+    parser.add_argument("--skip-keyd-reload", action="store_true", dest="skip_keyd_reload",
+                        help="Do not reload keyd after setting the keyboard layout")
     return parser.parse_args()
 
 
@@ -28,7 +32,7 @@ if __name__ == "__main__":
         os.execlpe('sudo', *sudo_args)
 
     # check if keyd is installed correctly
-    if not os.path.exists("/etc/keyd"):
+    if not os.path.exists("/etc/keyd") and not args.no_check_install:
         print_error("Keyd was not installed correctly. Please reinstall keyd and try again")
         sys.exit(1)
 
@@ -70,4 +74,5 @@ if __name__ == "__main__":
     bash(f"ln -sf /usr/share/eupnea/keyboard-layouts/{selected_layout} /etc/keyd/base.conf")
 
     # restart keyd
-    bash("systemctl restart keyd")
+    if not args.skip_keyd_reload:
+        bash("systemctl restart keyd")
