@@ -57,7 +57,7 @@ if __name__ == "__main__":
                 selected_layout = "cros-pixel.conf"
             case _:
                 # Use the board-generations file of the audio setup script to determine which layout should be used
-                with open("/etc/eupnea/audio/board-generations.json", "r") as generations:
+                with open("/usr/share/eupnea/audio/board-generations.json", "r") as generations:
                     board_generations = json.load(generations)
                 match board_generations[device_codename]:
                     case "tgl" | "adl":
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     print_status(f"Setting keyboard layout to: {selected_layout}")
     # -f to overwrite existing symlink
-    bash(f"ln -sf /etc/eupnea/keyboard-layouts/{selected_layout} /etc/keyd/base.conf")
+    bash(f"ln -sf /usr/share/eupnea/keyboard-layouts/{selected_layout} /etc/keyd/base.conf")
 
     # restart keyd
     bash("systemctl restart keyd")
