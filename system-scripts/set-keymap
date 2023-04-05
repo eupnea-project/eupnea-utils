@@ -37,7 +37,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.automatic:
-        all_layouts = os.listdir("/etc/eupnea/keyboard-layouts")
+        all_layouts = os.listdir("/usr/share/eupnea/keyboard-layouts")
 
         print_header("Available keyboard layouts:")
         for layout in all_layouts:
