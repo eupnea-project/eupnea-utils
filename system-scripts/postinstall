@@ -73,6 +73,7 @@ if __name__ == "__main__":
 
     expand_rootfs()
     set_hostname()
+    bash("/usr/lib/eupnea/set-keymap --automatic")  # set keyboard layout
 
     # disable postinstall systemd service
     bash("systemctl disable eupnea-postinstall.service")
