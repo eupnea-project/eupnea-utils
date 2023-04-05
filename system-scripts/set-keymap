@@ -27,11 +27,6 @@ if __name__ == "__main__":
         sudo_args = ['sudo', sys.executable] + sys.argv + [os.environ]
         os.execlpe('sudo', *sudo_args)
 
-    # check if keyd is installed correctly
-    if not os.path.exists("/etc/keyd"):
-        print_error("Keyd was not installed correctly. Please reinstall keyd and try again")
-        sys.exit(1)
-
     if not args.automatic:
         all_layouts = os.listdir("/etc/eupnea/keyboard-layouts")
 
