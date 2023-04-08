@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-
-
+import argparse
 # Sometimes the system update script needs to install/remove a package from a eupnea system. This is not possible
 # from within a postinstall script of a package. Therefor a systemd updater script is run, which will wait for the
 # package-manager to finish and then install/remove the necessary packages.
 
-# This script will read all files from /var/tmp/eupnea-updates and re/install/remove the packages specified in those files.
+# script will read all files from /var/tmp/eupnea-updates and re/install/remove the packages specified in those files.
 # The files will be executed in an alphanumerical order. The files will be deleted after they have been executed.
 # The name of the files should be something like v1.1.0.txt, v1.1.1.txt, v1.1.2.txt, etc.
 # The files should be a plain text file with all packages on one line. Only the first line will be read.
 
+# If the package name is not prefixed with anything, the package will be just installed.
 # If the package name is prefixed with a minus sign (-), the package will be removed.
 # If the package name is prefixed with an exclamation mark (!), the package will be reinstalled.
 
@@ -19,6 +19,14 @@ import sys
 
 sys.path.insert(0, "/usr/lib/eupnea")
 from functions import *
+
+
+# parse arguments from the cli.
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file", dest="custom_file", help="Read packages from specified file. Full path required. When"
+                                                           " used, files from /var/tmp/eupnea-updates will be ignored.")
+    return parser.parse_args()
 
 
 def modify_packages(packages_raw: str) -> None:
@@ -59,6 +67,7 @@ def modify_packages(packages_raw: str) -> None:
 
 
 if __name__ == "__main__":
+    args = process_args()
     set_verbose(True)
 
     # Read distro name and set package manager commands
@@ -86,19 +95,30 @@ if __name__ == "__main__":
             pkgmngr_remove = "pacman -R --noconfirm insert_package_list || true"
 
     # Start main script loop
-    print_status("Reading update files from /var/tmp/eupnea-updates")
-    for file in sorted(os.listdir("/var/tmp/eupnea-updates")):
-        if file.endswith(".txt"):
-            print_status(f"Processing file {file}")
-            with open(f"/var/tmp/eupnea-updates/{file}") as f:
-                package_list = f.readlines()[0]  # only read first line
-            if package_list in ["", " ", "\n"]:  # check if file is empty
-                print_warning(f"No packages specified in /var/tmp/eupnea-updates/{file}")
-                continue
-            # Modify packages
+    if not args.custom_file:
+        print_status("Reading update files from /var/tmp/eupnea-updates")
+        for file in sorted(os.listdir("/var/tmp/eupnea-updates")):
+            if file.endswith(".txt"):
+                print_status(f"Processing file {file}")
+                with open(f"/var/tmp/eupnea-updates/{file}") as f:
+                    package_list = f.readlines()[0]  # only read first line
+                if package_list in ["", " ", "\n"]:  # check if file is empty
+                    print_warning(f"No packages specified in /var/tmp/eupnea-updates/{file}")
+                    continue
+                # Modify packages
+                modify_packages(package_list)
+                # Delete file after successful execution
+                rmfile(f"/var/tmp/eupnea-updates/{file}")
+    else:
+        # only read specified file
+        print_status(f"Reading update from {args.custom_file}")
+        with open(args.custom_file) as f:
+            package_list = f.readlines()[0]  # only read first line
+        if package_list in ["", " ", "\n"]:  # check if file is empty
+            print_warning(f"No packages specified in {args.custom_file}")
+        else:
             modify_packages(package_list)
-            # Delete file after successful execution
-            rmfile(f"/var/tmp/eupnea-updates/{file}")
+            # do not delete file if it was specified manually
 
     print_status("Exiting script")
     exit(0)
