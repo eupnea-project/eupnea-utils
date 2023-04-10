@@ -61,7 +61,11 @@ if __name__ == "__main__":
             print_warning("Ignoring reboot check.")
 
     # Exit if running from inside a chroot
-    if not path_exists("/proc/mounts"):
+    try:
+        # systemd-detect-virt -r returns 1 if not in chroot
+        # and returns 0 if in chroot -> invert exit code to be able to catch CalledProcessError
+        bash("sudo systemd-detect-virt -r && exit 1 || exit 0")
+    except subprocess.CalledProcessError:
         print_warning("Chroot detected: Skipping kernel flashing, please flash manually.")
         exit(0)
 
