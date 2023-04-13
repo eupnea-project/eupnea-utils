@@ -147,7 +147,8 @@ if __name__ == "__main__":
     with open("/mnt/internal/etc/eupnea.json", "w") as settings_file:
         json.dump(settings, settings_file)
     # enable postinstall service on internal storage
-    bash("chroot /mnt/internal /bin/bash -c 'systemctl enable eupnea-postinstall.service'")
+    with contextlib.suppress(subprocess.CalledProcessError):  # generic ISOs do not have this service
+        bash("chroot /mnt/internal /bin/bash -c 'systemctl enable eupnea-postinstall.service'")
 
     with contextlib.suppress(subprocess.CalledProcessError):
         bash("umount -fl /mnt/internal")
