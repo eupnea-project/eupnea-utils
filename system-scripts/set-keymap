@@ -59,6 +59,8 @@ if __name__ == "__main__":
                 selected_layout = "cros-banshee.conf"
             case "nocturne" | "eve" | "atlas":  # Google Pixelbooks
                 selected_layout = "cros-pixel.conf"
+            case "lindar":  # despite being a tigerlake cb it has an old layout
+                selected_layout = "cros-standard.conf"
             case _:
                 # Use the board-generations file of the audio setup script to determine which layout should be used
                 with open("/usr/share/eupnea/audio/board-generations.json", "r") as generations:
