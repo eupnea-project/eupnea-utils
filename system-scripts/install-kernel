@@ -110,7 +110,6 @@ if __name__ == "__main__":
          f"--config {temp_dir}/kernel.flags --vmlinuz {temp_dir}/bzImage.raw --pack "
          f"{temp_dir}/bzImage.signed")
 
-    print_status(f"Flashing kernel to {args.flash_device} partition {args.flash_partition}")
     # read current device if no device is given
     dont_write_reboot_needed = False
     if not args.flash_device:
@@ -122,6 +121,7 @@ if __name__ == "__main__":
             args.flash_device = f"/dev/{args.flash_device}"
         if args.flash_device[-1].isdigit():  # if device ends with a number, remove it
             args.flash_device = args.flash_device[:-1]
+    print_status(f"Flashing kernel to {args.flash_device} partition {args.flash_partition}")
     bash(f"dd if={temp_dir}/bzImage.signed of={args.flash_device}{args.flash_partition}")
 
     if not dont_write_reboot_needed:
