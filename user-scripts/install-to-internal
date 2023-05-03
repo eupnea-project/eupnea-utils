@@ -41,7 +41,6 @@ if __name__ == "__main__":
         for line in lsblk_out:
             if line.find("mmcblk") != -1 or line.find("nvme") != -1:
                 storage_array.append(line[:7].strip())  # get actual device name
-                break
         if not storage_array:
             print_error("No internal storage found... Please create an issue")
             exit(1)
