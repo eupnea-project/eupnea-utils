@@ -63,6 +63,8 @@ if __name__ == "__main__":
                 selected_layout = "cros-standard.conf"
             case "jinlon":  # aka HP Chromebook x360 13c / Elite c1030
                 selected_layout = "cros-jinlon.conf"
+            case "sarien":  # aka Dell Latitude 5400 Chromebook
+                selected_layout = "cros-sarien.conf"
             case _:
                 # Use the board-generations file of the audio setup script to determine which layout should be used
                 with open("/usr/share/eupnea/audio/board-generations.json", "r") as generations:
