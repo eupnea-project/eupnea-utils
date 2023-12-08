@@ -67,7 +67,7 @@ if __name__ == "__main__":
                 selected_layout = "cros-sarien.conf"
             case _:
                 # Use the board-generations file of the audio setup script to determine which layout should be used
-                with open("/usr/share/eupnea/audio/board-generations.json", "r") as generations:
+                with open("/usr/share/eupnea/board-generations.json", "r") as generations:
                     board_generations = json.load(generations)
                 match board_generations[device_codename]:
                     case "tgl" | "adl":
