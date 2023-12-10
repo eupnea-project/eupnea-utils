@@ -25,16 +25,7 @@ def process_args():
 
 
 def cli_editors():
-    if path_exists("/usr/bin/nano"):
-        os.system(f"nano {temp_cmdline_file}")
-    elif path_exists("/usr/bin/vim"):
-        os.system(f"vim {temp_cmdline_file}")
-    elif path_exists("/usr/bin/vi"):
-        os.system(f"vi {temp_cmdline_file}")
-    else:
-        print_error("No text editor found. Please install nano/vim/vi")
-        exit(1)
-
+    os.system(f"{os.environ["EDITOR"]} {temp_cmdline_file}")
 
 if __name__ == "__main__":
     args = process_args()
