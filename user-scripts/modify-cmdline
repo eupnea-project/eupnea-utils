@@ -16,8 +16,6 @@ def process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--print-current', action="store_true", dest="print_current", default=False,
                         help="Show current command line")
-    parser.add_argument("--skip-backup", dest="skip_backup", default=False,
-                        help="Do not backup kernel from 1st partition to 2nd.")
     parser.add_argument("--force-cli-editor", dest="force_cli_editor", action="store_true",
                         help="Force the use of a cli text editor.")
     parser.add_argument("-v", action="store_true", dest="verbose", default=False, help="Print more output")
@@ -90,14 +88,6 @@ if __name__ == "__main__":
 
     # do not allow ctrl+c to avoid corrupting the kernel
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # ignore ctrl+c
-
-    if not args.skip_backup:
-        # read partitions
-        partitions = bash("mount | grep ' / ' | cut -d' ' -f 1")
-        partitions = partitions[:-1]  # get device name
-        print_status("Backing up kernel")
-        print_question("Backing up kernel requires root privileges.")
-        bash(f"sudo dd if={partitions}1 of={partitions}2")  # backup kernel partition to second partition
 
     # start install-kernel script
     print_status("Installing new kernel")
